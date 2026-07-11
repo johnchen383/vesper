@@ -62,7 +62,11 @@ export function AddPrayerSheet({ onClose }: { onClose: () => void }) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="Anything you want to hold onto as you pray"
+              placeholder={
+                kind === 'person'
+                  ? 'Who they are to you, and what you carry for them'
+                  : 'Anything you want to hold onto as you pray'
+              }
             />
           </label>
           {canvases.length > 1 && (
