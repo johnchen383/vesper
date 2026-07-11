@@ -953,7 +953,7 @@ export class OrbEngine {
         this.hoverId === orb.id ||
         focused)
     if (labelVisible) {
-      ctx.font = LABEL_FONT
+      ctx.font = this.labelFont()
       ctx.textAlign = 'center'
       ctx.textBaseline = 'top'
       const ink = dark ? '247, 245, 252' : '53, 50, 44'
@@ -966,15 +966,20 @@ export class OrbEngine {
     }
   }
 
+  /** Slightly larger labels on phone-width screens. */
+  private labelFont(): string {
+    return `500 ${this.w < 600 ? 13 : 12}px Inter, system-ui, sans-serif`
+  }
+
   /** Break a label into at most two lines, ellipsised if it still overflows. */
   private wrapLabel(label: string): string[] {
     // Labels stay in proportion to the orbs they sit under.
     const maxW = Math.max(96, this.orbStyle.baseRadius * 4.6)
-    const key = `${maxW}:${label}`
+    const key = `${this.labelFont()}:${maxW}:${label}`
     const cached = this.labelCache.get(key)
     if (cached) return cached
     const { ctx } = this
-    ctx.font = LABEL_FONT
+    ctx.font = this.labelFont()
     const lines: string[] = []
     let rest = label.trim()
     for (let li = 0; li < 2 && rest; li++) {
@@ -1005,5 +1010,3 @@ export class OrbEngine {
     return lines
   }
 }
-
-const LABEL_FONT = '500 12px Inter, system-ui, sans-serif'

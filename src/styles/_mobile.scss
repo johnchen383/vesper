@@ -1,0 +1,61 @@
+// Mobile typography: platform body text runs ~16-17px, so everything steps
+// up one notch on small screens. Inputs MUST be >=16px or iOS Safari zooms
+// the page when they focus.
+@media (max-width: 600px) {
+  .sheet__header h2 {
+    font-size: 22px;
+  }
+
+  .btn,
+  .toggle-row,
+  .fab__action,
+  .canvasrow__name {
+    font-size: 15px;
+  }
+
+  .field {
+    font-size: 14px;
+
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+
+  .canvasrow__input {
+    font-size: 16px;
+  }
+
+  .prayer__desc,
+  .empty__sub {
+    font-size: 16px;
+  }
+
+  .prayer__meta,
+  .prayer__today,
+  .hint,
+  .journal__entry,
+  .journal__toggle,
+  .settings__about,
+  .segmented button,
+  .chips button,
+  .vespers__text,
+  .toast,
+  .canvasbar,
+  .viewbar span {
+    font-size: 14px;
+  }
+
+  .session__title {
+    font-size: 18px;
+  }
+
+  .session__desc {
+    font-size: 15px;
+  }
+
+  .about__blurb {
+    font-size: 15px;
+  }
+}
