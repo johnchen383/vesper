@@ -1,0 +1,148 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--ink-dim);
+
+  em {
+    font-style: normal;
+    color: var(--ink-faint);
+  }
+
+  input,
+  textarea {
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--wash);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 11px 13px;
+    outline: none;
+    resize: none;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
+
+    &::placeholder {
+      color: var(--ink-faint);
+    }
+
+    &:focus {
+      border-color: var(--accent);
+      background: var(--wash-focus);
+    }
+  }
+}
+
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--wash);
+
+  button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 7px 0;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    transition:
+      background 0.2s,
+      color 0.2s;
+
+    small {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--ink-faint);
+    }
+
+    &.is-active {
+      background: var(--accent-soft);
+      color: var(--ink);
+
+      small {
+        color: var(--ink-dim);
+      }
+    }
+  }
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+
+  &__label {
+    flex-shrink: 0;
+    width: 52px;
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
+
+  .segmented {
+    flex: 1;
+  }
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 14px;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .toggle {
+    flex-shrink: 0;
+    position: relative;
+    width: 40px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--track);
+    transition: background 0.2s;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(53, 50, 44, 0.25);
+      transition: transform 0.2s;
+    }
+  }
+
+  input:checked + .toggle {
+    background: var(--accent);
+
+    &::after {
+      transform: translateX(16px);
+    }
+  }
+}

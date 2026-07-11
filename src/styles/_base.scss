@@ -1,0 +1,132 @@
+@use 'tokens' as t;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: t.$font-body;
+  color: var(--ink);
+  background:
+    radial-gradient(90% 60% at 50% 108%, rgba(214, 196, 158, 0.35), transparent 62%),
+    radial-gradient(130% 95% at 50% -10%, #fdfcf9 0%, #f6f2ea 55%, #ece6d9 100%);
+  background-attachment: fixed;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+:root[data-theme='dark'] body {
+  background:
+    radial-gradient(90% 60% at 50% 108%, rgba(124, 110, 190, 0.18), transparent 62%),
+    radial-gradient(130% 95% at 50% -10%, #221f3e 0%, #171530 55%, #0d0c1d 100%);
+}
+
+#root {
+  position: relative;
+  height: 100dvh;
+}
+
+.orb-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none; // orb dragging handles its own pointer gestures
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--wash);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
+
+  &:hover {
+    background: var(--wash-strong);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  &--primary {
+    border-color: transparent;
+    background: linear-gradient(135deg, #93a37c, #74855f);
+    box-shadow: 0 4px 20px rgba(116, 133, 95, 0.35);
+    color: #fff;
+
+    &:hover {
+      background: linear-gradient(135deg, #9dad86, #7e8f69);
+    }
+  }
+
+  &--danger {
+    color: var(--danger);
+    border-color: rgba(169, 79, 88, 0.3);
+
+    &:hover {
+      background: rgba(169, 79, 88, 0.08);
+    }
+  }
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--ink-dim);
+  transition:
+    background 0.2s,
+    color 0.2s;
+
+  &:hover {
+    background: var(--wash-strong);
+    color: var(--ink);
+  }
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

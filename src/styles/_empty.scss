@@ -1,0 +1,44 @@
+@use 'tokens' as t;
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 22vh 24px 24px; // sit below the example orb floating above centre
+  text-align: center;
+  pointer-events: none;
+  animation: empty-in 1.4s ease;
+
+  &__wordmark {
+    margin: 0;
+    font-family: t.$font-display;
+    font-size: 34px;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    text-indent: 0.3em; // optically recenter the letterspaced word
+    text-shadow: 0 0 44px rgba(201, 162, 94, 0.4);
+  }
+
+  &__sub {
+    margin: 0;
+    font-size: 15px;
+    color: var(--ink-dim);
+  }
+
+  &__hint {
+    margin: 20px 0 0;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+}
+
+@keyframes empty-in {
+  from {
+    opacity: 0;
+  }
+}

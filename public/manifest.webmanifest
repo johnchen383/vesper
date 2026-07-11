@@ -1,0 +1,10 @@
+{
+  "name": "Vesper",
+  "short_name": "Vesper",
+  "description": "A quiet canvas for prayer.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ee",
+  "theme_color": "#f7f4ee",
+  "icons": [{ "src": "/vesper.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

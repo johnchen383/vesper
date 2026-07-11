@@ -1,0 +1,43 @@
+$font-display: 'Inter', system-ui, -apple-system, sans-serif;
+$font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+:root {
+  --ink: #35322c;
+  --ink-dim: rgba(53, 50, 44, 0.55);
+  --ink-faint: rgba(53, 50, 44, 0.35);
+  --surface: rgba(255, 254, 250, 0.92);
+  --line: rgba(53, 50, 44, 0.12);
+  --accent: #7f9065;
+  --accent-soft: rgba(127, 144, 101, 0.2);
+  --gold: #a4813f;
+  --danger: #a94f58;
+
+  // Fills derived from ink/surface — flip with the theme.
+  --wash: rgba(53, 50, 44, 0.04);
+  --wash-strong: rgba(53, 50, 44, 0.09);
+  --wash-focus: rgba(255, 254, 250, 0.8);
+  --track: rgba(53, 50, 44, 0.18);
+  --float: rgba(255, 254, 250, 0.65);
+  --float-strong: rgba(255, 254, 250, 0.9);
+  --veil: rgba(244, 240, 232, 0.45);
+}
+
+:root[data-theme='dark'] {
+  --ink: #eae8f2;
+  --ink-dim: rgba(234, 232, 242, 0.55);
+  --ink-faint: rgba(234, 232, 242, 0.34);
+  --surface: rgba(58, 56, 66, 0.95);
+  --line: rgba(234, 232, 242, 0.12);
+  --accent: #7f9065; // same sage as light mode
+  --accent-soft: rgba(127, 144, 101, 0.26);
+  --gold: #d4b06a;
+  --danger: #d98a95;
+
+  --wash: rgba(234, 232, 242, 0.06);
+  --wash-strong: rgba(234, 232, 242, 0.12);
+  --wash-focus: rgba(44, 42, 52, 0.8);
+  --track: rgba(234, 232, 242, 0.22);
+  --float: rgba(62, 60, 72, 0.7);
+  --float-strong: rgba(74, 72, 84, 0.9);
+  --veil: rgba(10, 9, 18, 0.45);
+}
