@@ -96,9 +96,16 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
     if (settings.theme === 'system') mq.addEventListener('change', onSchemeChange)
 
     // Visible canvases become constellation groups, in canvas-list order.
+    // Empty canvases don't claim a slot — space is shared among those that
+    // actually have orbs to show.
+    const showsOrbs = (canvasId: string) =>
+      prayers.some(
+        (p) => p.canvasId === canvasId && (settings.showAnswered || p.status !== 'answered')
+      )
     const groupOf = new Map<string, number>()
-    const visibleCanvases = canvases.filter((c) => visibleCanvasIds.includes(c.id))
-    visibleCanvases.forEach((c, index) => groupOf.set(c.id, index))
+    canvases
+      .filter((c) => visibleCanvasIds.includes(c.id) && showsOrbs(c.id))
+      .forEach((c, index) => groupOf.set(c.id, index))
     engine.groups = mode === 'answered' ? 1 : Math.max(1, groupOf.size)
 
     const sync = () => {
