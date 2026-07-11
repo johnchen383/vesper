@@ -49,7 +49,7 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
       </section>
 
       <section className="settings__section">
-        <p className="hint">Vesper · v0.1</p>
+        <p className="hint">Vesper · v0.1 · {__COMMIT__}</p>
       </section>
     </Sheet>
   )
