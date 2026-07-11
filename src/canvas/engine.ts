@@ -115,6 +115,8 @@ export class OrbEngine {
   focusId: string | null = null
   /** Exponential moving average of frames per second. */
   fps = 60
+  /** Debug: draw a faint cross at the engine's understanding of centre. */
+  showCenter = false
   /** Fired when a long-press charge completes — the caller records the prayer. */
   onChargeComplete: ((id: string) => void) | null = null
   chargeId: string | null = null
@@ -449,17 +451,17 @@ export class OrbEngine {
       orb.vx += (Math.cos(orb.heading) * drift - orb.vx) * steer
       orb.vy += (Math.sin(orb.heading) * drift - orb.vy) * steer
 
-      // Inverted gravity: a gentle ever-present pull toward the centre that
-      // strengthens toward the fringes, so orbs cluster loosely around the
-      // middle while the innermost region stays free to meander. Prayers
-      // still waiting on today's prayer feel an extra homeward pull.
+      // Inverted gravity: barely felt near the centre, pulls increasingly
+      // hard toward it out on the fringes so the canvas stays gathered.
+      // Prayers still waiting on today's prayer feel an extra homeward pull,
+      // drifting into the field of view; prayed-for orbs may roam wider.
       if (!this.reduceMotion) {
         const dx = cx - orb.x
         const dy = cy - orb.y
         const d = Math.hypot(dx, dy)
         if (d > 1) {
           const waiting = !orb.answered && !orb.prayedToday
-          const a = 26 * (d / ref) ** 2 + 10 * (d / ref) + (waiting ? 12 * (d / ref) : 0)
+          const a = 24 * (d / ref) ** 2.4 + (waiting ? 12 * (d / ref) : 0)
           orb.vx += (dx / d) * a * dt
           orb.vy += (dy / d) * a * dt
         }
@@ -676,6 +678,19 @@ export class OrbEngine {
     for (const orb of this.orbs.values()) this.drawTrail(orb)
     for (const orb of this.orbs.values()) this.drawOrb(orb)
     this.drawSparks()
+
+    if (this.showCenter) {
+      const cx = this.w / 2
+      const cy = this.h / 2
+      ctx.strokeStyle = dark ? 'rgba(234,232,242,0.4)' : 'rgba(53,50,44,0.4)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(cx - 14, cy)
+      ctx.lineTo(cx + 14, cy)
+      ctx.moveTo(cx, cy - 14)
+      ctx.lineTo(cx, cy + 14)
+      ctx.stroke()
+    }
   }
 
   /** A comet-shaped wake: widest at the orb, tapering to a point at the tail. */

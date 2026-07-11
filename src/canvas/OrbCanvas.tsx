@@ -84,6 +84,7 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
       coreAlpha: core.alpha,
     }
     engine.theme = resolveTheme(settings.theme)
+    engine.showCenter = settings.showFps
     engine.demoMode = demo && mode === 'canvas'
     engine.focusId = focusId
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
