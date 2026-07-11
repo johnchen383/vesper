@@ -398,7 +398,6 @@ export class OrbEngine {
     const orbs = [...this.orbs.values()]
     const cx = this.w / 2
     const cy = this.h / 2
-    const ref = Math.min(this.w, this.h) / 2 || 1
 
     for (const orb of orbs) {
       orb.appear = Math.min(1, orb.appear + dt / 0.9)
@@ -453,17 +452,19 @@ export class OrbEngine {
 
       // Inverted gravity: barely felt near the centre, pulls increasingly
       // hard toward it out on the fringes so the canvas stays gathered.
-      // Prayers still waiting on today's prayer feel an extra homeward pull,
-      // drifting into the field of view; prayed-for orbs may roam wider.
+      // Distances are normalised per axis (screen edge = 1 in every
+      // direction), so narrow portrait screens centre just as firmly
+      // sideways as wide ones. Prayers still waiting on today's prayer feel
+      // an extra homeward pull; prayed-for orbs may roam wider.
       if (!this.reduceMotion) {
-        const dx = cx - orb.x
-        const dy = cy - orb.y
-        const d = Math.hypot(dx, dy)
-        if (d > 1) {
+        const nx = (cx - orb.x) / (this.w / 2)
+        const ny = (cy - orb.y) / (this.h / 2)
+        const dn = Math.hypot(nx, ny)
+        if (dn > 0.01) {
           const waiting = !orb.answered && !orb.prayedToday
-          const a = 24 * (d / ref) ** 2.4 + (waiting ? 12 * (d / ref) : 0)
-          orb.vx += (dx / d) * a * dt
-          orb.vy += (dy / d) * a * dt
+          const a = 24 * dn ** 2.4 + (waiting ? 12 * dn : 0)
+          orb.vx += (nx / dn) * a * dt
+          orb.vy += (ny / dn) * a * dt
         }
       }
 
