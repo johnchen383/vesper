@@ -280,6 +280,14 @@
       gap: 6px;
       padding-left: 10px;
       border-left: 2px solid var(--accent-soft);
+
+      &.is-answered {
+        border-left-color: rgba(201, 162, 94, 0.55);
+
+        time {
+          color: var(--gold);
+        }
+      }
     }
   }
 
@@ -305,6 +313,17 @@
     width: 24px;
     height: 24px;
     color: var(--ink-faint);
+  }
+
+  &__mark {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    color: var(--ink-faint);
+
+    &.is-active {
+      color: var(--gold);
+    }
   }
 
   &__input {

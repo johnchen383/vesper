@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Sheet, type SheetAnchor } from './Sheet'
-import { CloseIcon } from './icons'
+import { CloseIcon, StarIcon } from './icons'
+import type { PrayerKind } from '../types'
 import { useVesper } from '../store/useVesper'
 import { isSameDay, longDate, timeAgo } from '../lib/format'
 
@@ -19,13 +20,22 @@ type Mode = 'view' | 'edit' | 'answer'
 export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }: Props) {
   const prayer = useVesper((s) => s.prayers.find((p) => p.id === prayerId))
   const canvases = useVesper((s) => s.canvases)
-  const { pray, updatePrayer, addJournal, removeJournal, markAnswered, reopen, removePrayer } =
-    useVesper.getState()
+  const {
+    pray,
+    updatePrayer,
+    addJournal,
+    removeJournal,
+    toggleJournalAnswered,
+    markAnswered,
+    reopen,
+    removePrayer,
+  } = useVesper.getState()
 
   const [mode, setMode] = useState<Mode>('view')
   const [title, setTitle] = useState(prayer?.title ?? '')
   const [description, setDescription] = useState(prayer?.description ?? '')
   const [canvasId, setCanvasId] = useState(prayer?.canvasId ?? '')
+  const [kind, setKind] = useState<PrayerKind>(prayer?.kind ?? 'request')
   const [note, setNote] = useState('')
   const [journalOpen, setJournalOpen] = useState(false)
   const [journalText, setJournalText] = useState('')
@@ -40,6 +50,7 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
     updatePrayer(prayer.id, {
       title: title.trim(),
       description: description.trim() || undefined,
+      kind,
       ...(canvasId && canvasId !== prayer.canvasId ? { canvasId } : {}),
     })
     setMode('view')
@@ -49,6 +60,25 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
     return (
       <Sheet title="Edit prayer" onClose={onClose} anchor={anchor}>
         <form className="form" onSubmit={saveEdit}>
+          <div className="field">
+            <span>This prayer is for</span>
+            <div className="chips">
+              <button
+                type="button"
+                className={kind === 'request' ? 'is-active' : ''}
+                onClick={() => setKind('request')}
+              >
+                A request
+              </button>
+              <button
+                type="button"
+                className={kind === 'person' ? 'is-active' : ''}
+                onClick={() => setKind('person')}
+              >
+                A person
+              </button>
+            </div>
+          </div>
           <label className="field">
             <span>Title</span>
             <input
@@ -180,11 +210,21 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
                 {prayer.journal.length > 0 && (
                   <ul className="journal__list">
                     {[...prayer.journal].reverse().map((entry) => (
-                      <li key={entry.at}>
+                      <li key={entry.at} className={entry.answeredAt ? 'is-answered' : ''}>
                         <div className="journal__entry">
-                          <time>{longDate(entry.at)}</time>
+                          <time>
+                            {longDate(entry.at)}
+                            {entry.answeredAt ? ` · answered ${longDate(entry.answeredAt)}` : ''}
+                          </time>
                           {entry.text}
                         </div>
+                        <button
+                          className={`icon-btn journal__mark ${entry.answeredAt ? 'is-active' : ''}`}
+                          aria-label={entry.answeredAt ? 'Unmark answered' : 'Mark note answered'}
+                          onClick={() => toggleJournalAnswered(prayer.id, entry.at)}
+                        >
+                          <StarIcon size={13} />
+                        </button>
                         <button
                           className="icon-btn journal__remove"
                           aria-label="Delete note"
@@ -264,11 +304,19 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
                 <button className="btn" onClick={() => setMode('edit')}>
                   Edit
                 </button>
-                <button className="btn" onClick={() => setMode('answer')}>
-                  Answered
-                </button>
+                {prayer.kind !== 'person' && (
+                  <button className="btn" onClick={() => setMode('answer')}>
+                    Answered
+                  </button>
+                )}
                 <button className="btn btn--danger" onClick={handleDelete}>
-                  {confirmDelete ? 'Really delete?' : 'Delete'}
+                  {prayer.kind === 'person'
+                    ? confirmDelete
+                      ? 'Really release?'
+                      : 'Release'
+                    : confirmDelete
+                      ? 'Really delete?'
+                      : 'Delete'}
                 </button>
               </div>
             )}

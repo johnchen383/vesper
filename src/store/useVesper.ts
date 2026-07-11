@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import type { Prayer, PrayerCanvas, Settings } from '../types'
+import type { Prayer, PrayerCanvas, PrayerKind, Settings } from '../types'
 import { localAdapter } from '../storage/adapter'
 
 // Curated orb tones (see the engine's palette); gold is reserved for answered prayers.
@@ -9,7 +9,7 @@ const HUES = [216, 8, 100, 340, 275, 185]
 const MAX_PRAYED_ENTRIES = 1000
 
 /** Bump when the persisted shape changes, and handle it in `migrate` below. */
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 4
 
 interface VesperState {
   prayers: Prayer[]
@@ -17,14 +17,15 @@ interface VesperState {
   /** Canvases currently shown on the main view. Invariant: at least one. */
   visibleCanvasIds: string[]
   settings: Settings
-  addPrayer: (title: string, description?: string, canvasId?: string) => string
+  addPrayer: (title: string, description?: string, canvasId?: string, kind?: PrayerKind) => string
   pray: (id: string) => void
   updatePrayer: (
     id: string,
-    patch: Partial<Pick<Prayer, 'title' | 'description' | 'canvasId'>>
+    patch: Partial<Pick<Prayer, 'title' | 'description' | 'canvasId' | 'kind'>>
   ) => void
   addJournal: (id: string, text: string) => void
   removeJournal: (id: string, at: number) => void
+  toggleJournalAnswered: (id: string, at: number) => void
   markAnswered: (id: string, note?: string) => void
   reopen: (id: string) => void
   removePrayer: (id: string) => void
@@ -73,7 +74,7 @@ export const useVesper = create<VesperState>()(
         showFps: false,
       },
 
-      addPrayer: (title, description, canvasId) => {
+      addPrayer: (title, description, canvasId, kind = 'request') => {
         const { prayers, canvases, visibleCanvasIds } = get()
         const target =
           canvasId ??
@@ -87,6 +88,7 @@ export const useVesper = create<VesperState>()(
           prayedAt: [],
           journal: [],
           canvasId: target,
+          kind,
           status: 'active',
         }
         set((s) => ({ prayers: [...s.prayers, prayer] }))
@@ -112,6 +114,22 @@ export const useVesper = create<VesperState>()(
           prayers: s.prayers.map((p) =>
             p.id === id
               ? { ...p, journal: [...p.journal, { at: Date.now(), text: text.trim() }] }
+              : p
+          ),
+        })),
+
+      toggleJournalAnswered: (id, at) =>
+        set((s) => ({
+          prayers: s.prayers.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  journal: p.journal.map((e) =>
+                    e.at === at
+                      ? { ...e, answeredAt: e.answeredAt ? undefined : Date.now() }
+                      : e
+                  ),
+                }
               : p
           ),
         })),
@@ -229,6 +247,10 @@ export const useVesper = create<VesperState>()(
           state.canvases = [def]
           state.visibleCanvasIds = [def.id]
           state.prayers = (state.prayers ?? []).map((p) => ({ ...p, canvasId: def.id }))
+        }
+        if (version < 4) {
+          // v4 added prayer kinds (request | person).
+          state.prayers = (state.prayers ?? []).map((p) => ({ ...p, kind: p.kind ?? 'request' }))
         }
         return state
       },

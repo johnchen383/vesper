@@ -3,8 +3,10 @@ import { Sheet } from './Sheet'
 const WISHLIST = [
   'Sharing a prayer with a friend, so two people can carry it together',
   'Group prayer: a shared canvas for a family, small group, or church',
+  'Subscribing to a canvas, so you can carry what others are carrying',
   'Scripture integration: pin a verse or promise to a prayer',
   'An overview that gathers each canvas into a single orb',
+  'Soft background music for a quieter place to dwell',
   'Cloud sync across devices',
   'Gentle evening reminders as a native app',
 ]

@@ -60,6 +60,7 @@ export async function importBackup(file: File): Promise<{ ok: boolean; message: 
         hue: typeof p.hue === 'number' ? p.hue : 216,
         journal: Array.isArray(p.journal) ? p.journal : [],
         canvasId: knownIds.has(p.canvasId) ? p.canvasId : resolved[0].id,
+        kind: p.kind === 'person' ? ('person' as const) : ('request' as const),
         status: p.status === 'answered' ? ('answered' as const) : ('active' as const),
       }))
     useVesper.getState().replaceAll(prayers, resolved, data.settings)

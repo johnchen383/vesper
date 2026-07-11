@@ -1,8 +1,13 @@
 export type PrayerStatus = 'active' | 'answered'
 
+/** A request resolves; a person is carried. People cannot be "answered". */
+export type PrayerKind = 'request' | 'person'
+
 export interface JournalEntry {
   at: number
   text: string
+  /** Set when this specific note was answered — the person endures. */
+  answeredAt?: number
 }
 
 /** A named collection of prayers; any subset can be shown on the main view. */
@@ -26,6 +31,7 @@ export interface Prayer {
   journal: JournalEntry[]
   /** The canvas this prayer lives on. */
   canvasId: string
+  kind: PrayerKind
   status: PrayerStatus
   answeredAt?: number
   answeredNote?: string

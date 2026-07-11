@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Sheet } from './Sheet'
 import { useVesper } from '../store/useVesper'
+import type { PrayerKind } from '../types'
 
 export function AddPrayerSheet({ onClose }: { onClose: () => void }) {
   const addPrayer = useVesper((s) => s.addPrayer)
@@ -8,6 +9,7 @@ export function AddPrayerSheet({ onClose }: { onClose: () => void }) {
   const visibleCanvasIds = useVesper((s) => s.visibleCanvasIds)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [kind, setKind] = useState<PrayerKind>('request')
   const [canvasId, setCanvasId] = useState(
     () => (visibleCanvasIds.length === 1 ? visibleCanvasIds[0] : canvases[0]?.id) ?? ''
   )
@@ -15,7 +17,7 @@ export function AddPrayerSheet({ onClose }: { onClose: () => void }) {
   const submit = (e: FormEvent, close: () => void) => {
     e.preventDefault()
     if (!title.trim()) return
-    addPrayer(title, description, canvasId || undefined)
+    addPrayer(title, description, canvasId || undefined, kind)
     close()
   }
 
@@ -23,13 +25,32 @@ export function AddPrayerSheet({ onClose }: { onClose: () => void }) {
     <Sheet title="New prayer" onClose={onClose}>
       {(close) => (
         <form className="form" onSubmit={(e) => submit(e, close)}>
+          <div className="field">
+            <span>This prayer is for</span>
+            <div className="chips">
+              <button
+                type="button"
+                className={kind === 'request' ? 'is-active' : ''}
+                onClick={() => setKind('request')}
+              >
+                A request
+              </button>
+              <button
+                type="button"
+                className={kind === 'person' ? 'is-active' : ''}
+                onClick={() => setKind('person')}
+              >
+                A person
+              </button>
+            </div>
+          </div>
           <label className="field">
-            <span>What/Who are you praying for?</span>
+            <span>{kind === 'person' ? 'Who are you praying for?' : 'What are you praying for?'}</span>
             <input
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Bob Smith"
+              placeholder={kind === 'person' ? 'e.g. Bob Smith' : 'e.g. Safe travels for Mum'}
               maxLength={80}
             />
           </label>
