@@ -159,13 +159,106 @@
 
 .fps {
   position: fixed;
-  top: calc(12px + env(safe-area-inset-top));
+  bottom: calc(16px + env(safe-area-inset-bottom));
   left: calc(12px + env(safe-area-inset-left));
   z-index: 6;
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 11px;
   color: var(--ink-faint);
   pointer-events: none;
+}
+
+// Top-left pill naming the visible canvases; opens the canvas selector.
+.canvasbar {
+  position: fixed;
+  top: calc(18px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
+  z-index: 5;
+  max-width: 46vw;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--float);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--float-strong);
+  }
+}
+
+.canvasrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+
+  &__vis {
+    display: inline-flex;
+    cursor: pointer;
+
+    input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    em {
+      font-style: normal;
+      font-size: 12px;
+      color: var(--ink-faint);
+      margin-left: 6px;
+    }
+  }
+
+  &__input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--wash);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 11px;
+    outline: none;
+
+    &::placeholder {
+      color: var(--ink-faint);
+    }
+
+    &:focus {
+      border-color: var(--accent);
+      background: var(--wash-focus);
+    }
+  }
+
+  &__confirm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  &--new {
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
 }
 
 .journal {
@@ -182,21 +275,36 @@
     gap: 10px;
 
     li {
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--ink);
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
       padding-left: 10px;
       border-left: 2px solid var(--accent-soft);
-
-      time {
-        display: block;
-        font-size: 11px;
-        color: var(--ink-faint);
-        margin-bottom: 1px;
-      }
     }
+  }
+
+  &__entry {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+
+    time {
+      display: block;
+      font-size: 11px;
+      color: var(--ink-faint);
+      margin-bottom: 1px;
+    }
+  }
+
+  &__remove {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    color: var(--ink-faint);
   }
 
   &__input {

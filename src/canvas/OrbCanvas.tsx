@@ -42,6 +42,8 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
   onLongPrayRef.current = onLongPray
   const prayers = useVesper((s) => s.prayers)
   const settings = useVesper((s) => s.settings)
+  const canvases = useVesper((s) => s.canvases)
+  const visibleCanvasIds = useVesper((s) => s.visibleCanvasIds)
 
   useEffect(() => {
     const canvas = canvasRef.current!
@@ -93,12 +95,21 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
     }
     if (settings.theme === 'system') mq.addEventListener('change', onSchemeChange)
 
+    // Visible canvases become constellation groups, in canvas-list order.
+    const groupOf = new Map<string, number>()
+    const visibleCanvases = canvases.filter((c) => visibleCanvasIds.includes(c.id))
+    visibleCanvases.forEach((c, index) => groupOf.set(c.id, index))
+    engine.groups = mode === 'answered' ? 1 : Math.max(1, groupOf.size)
+
     const sync = () => {
       const now = Date.now()
       const visible =
         mode === 'answered'
           ? prayers.filter((p) => p.status === 'answered')
-          : prayers.filter((p) => settings.showAnswered || p.status !== 'answered')
+          : prayers.filter(
+              (p) =>
+                groupOf.has(p.canvasId) && (settings.showAnswered || p.status !== 'answered')
+            )
       engine.sync(
         visible.map((p) => ({
           id: p.id,
@@ -109,6 +120,7 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
           prayedToday:
             p.prayedAt.length > 0 && isSameDay(p.prayedAt[p.prayedAt.length - 1], now),
           weight: p.prayedAt.length,
+          group: mode === 'answered' ? 0 : (groupOf.get(p.canvasId) ?? 0),
         }))
       )
     }
@@ -119,7 +131,7 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
       clearInterval(interval)
       if (settings.theme === 'system') mq.removeEventListener('change', onSchemeChange)
     }
-  }, [prayers, settings, mode, demo, focusId])
+  }, [prayers, settings, mode, demo, focusId, canvases, visibleCanvasIds])
 
   const localPoint = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()

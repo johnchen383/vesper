@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import { FlameIcon, PlusIcon, SlidersIcon, StarIcon } from './icons'
+import { FlameIcon, LayersIcon, PlusIcon, SlidersIcon, StarIcon } from './icons'
 
 interface Props {
   onAdd: () => void
   onPray?: () => void
+  onCanvases: () => void
   onAnswered?: () => void
   onSettings: () => void
 }
 
-export function Fab({ onAdd, onPray, onAnswered, onSettings }: Props) {
+export function Fab({ onAdd, onPray, onCanvases, onAnswered, onSettings }: Props) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -34,16 +35,20 @@ export function Fab({ onAdd, onPray, onAnswered, onSettings }: Props) {
             <FlameIcon size={17} />
           </button>
         )}
-        <button className="fab__action" tabIndex={open ? 0 : -1} onClick={act(onSettings)}>
-          <span>Settings</span>
-          <SlidersIcon size={17} />
-        </button>
         {onAnswered && (
           <button className="fab__action" tabIndex={open ? 0 : -1} onClick={act(onAnswered)}>
             <span>Answered</span>
             <StarIcon size={17} />
           </button>
         )}
+        <button className="fab__action" tabIndex={open ? 0 : -1} onClick={act(onCanvases)}>
+          <span>Canvas</span>
+          <LayersIcon size={17} />
+        </button>
+        <button className="fab__action" tabIndex={open ? 0 : -1} onClick={act(onSettings)}>
+          <span>Settings</span>
+          <SlidersIcon size={17} />
+        </button>
         <button className="fab__action" tabIndex={open ? 0 : -1} onClick={act(onAdd)}>
           <span>New prayer</span>
           <PlusIcon size={17} />

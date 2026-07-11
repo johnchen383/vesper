@@ -14,7 +14,7 @@ A minimalist prayer app: prayers are floating orbs on a living canvas. Praying f
 
 - `src/canvas/engine.ts` — the heart. OrbEngine class: physics (wander, inverted gravity, collisions, personal space, edge wrap), drawing (concentric-ring orbs, halo, heartbeat, ripples, comet trails, speck flakes, ascension sparks), interaction state (drag, hover/press lift, long-press charge, session focus), labels (2-line wrap + ellipsis, cached), fps EMA. Demo orb id `__demo` when canvas empty.
 - `src/canvas/OrbCanvas.tsx` — React wrapper: syncs store→engine (per minute + on change), pointer gestures (tap <500ms opens popup; >6px movement = drag; 550ms still hold = long-press charge that fires prayer at full charge), ResizeObserver, theme/settings→engine fields.
-- `src/store/useVesper.ts` — zustand + persist. `SCHEMA_VERSION = 2` with step-wise `migrate` (v2 added `journal`). Deep-merges settings (incl. nested `orb`) so new keys keep defaults. `useHydrated()` hook (storage is async).
+- `src/store/useVesper.ts` — zustand + persist. `SCHEMA_VERSION = 3` with step-wise `migrate` (v2 added `journal`; v3 added canvases: `PrayerCanvas` entities, `prayer.canvasId`, `visibleCanvasIds` with a ≥1-visible invariant). Deep-merges settings (incl. nested `orb`) so new keys keep defaults. `useHydrated()` hook (storage is async).
 - `src/storage/adapter.ts` — IndexedDB-backed `StateStorage` (db `vesper`, store `kv`, key `vesper:v1`); auto-migrates legacy localStorage data in; localStorage is the fallback. Swap this adapter for future cloud sync (Firebase/Mongo).
 - `src/lib/` — `vitality.ts` (0.75·recency half-life decay + 0.25·consistency, floor 0.12), `format.ts` (timeAgo, longDate, isSameDay), `backup.ts` (JSON export/import with validation), `theme.ts` (resolveTheme).
 - `src/components/` — Sheet (animated open AND close, 200ms; render-prop `children(close)` so inner actions animate too; `anchor` prop floats it beside an orb with no dim/no blur), PrayerSheet (view/edit/answer modes, journal timeline, "Prayed today" line), AddPrayerSheet, SettingsSheet, AboutSheet, Fab (order: Pray, Settings, Answered, New prayer), SessionPanel, VespersBanner, FpsMeter, EmptyState, icons.
@@ -32,6 +32,7 @@ A minimalist prayer app: prayers are floating orbs on a living canvas. Praying f
 - Trails are comet-shaped filled polygons (wide at orb → point at tail), not stroked lines.
 - Specks: irregular dark earthy tri/quad flakes with parallax depth (0.45–1.25 scales size/alpha/speed/push); react to orb wakes and Amen wavefronts; never draggable.
 - Hue palette is curated (engine PALETTE keyed by hue: 216 slate, 8 terracotta, 100 sage, 340 rose, 275 plum, 185 teal); gold ≈42–46 reserved for answered.
+- **Canvases** (v3): named collections of prayers; any subset visible (top-left pill + FAB → Canvases to manage/select). Each visible canvas is a constellation group: anchors on an ellipse around centre (centre itself when one canvas), per-group spread grows with √memberCount, and gravity pulls each orb to ITS anchor with real mid-range strength (30·(d/spread)^1.8, capped 160; waiting bonus 12·(d/spread)) — this replaced global-centre gravity and fixed a chronic left-drift (seeds are id-hashed; old fringe-only gravity never recentred them). Sessions/vespers scope to visible canvases. Density defenses: orb radius scales by √(30/n) (floor 0.6) past 30 orbs; labels past 40 orbs only for waiting/hovered/focused. Group colouring intentionally NOT done — spatial grouping first, see if it suffices. Future if scale demands: sprite caching, spatial hash, meta-orb-per-canvas overview.
 
 ## Design taste (user feedback, hard-won — respect it)
 
@@ -51,7 +52,7 @@ Everything on-device, no account/server/analytics (stated in About). Export/impo
 
 ## Wishlist (also listed in AboutSheet)
 
-Sharing a prayer with a friend, groupings/constellations, group prayer canvas, scripture pinned to prayers, cloud sync, native evening reminders. Also previously discussed: time-of-day background sky, optional sound on Amen, breathing guide in session, haptics via Capacitor, PWA service worker, IndexedDB was done, migration tests still not written.
+Sharing a prayer with a friend, group prayer canvas, scripture pinned to prayers, meta-orb overview (one orb per canvas), cloud sync, native evening reminders. (Groupings/constellations shipped as Canvases in v3.) Also previously discussed: time-of-day background sky, optional sound on Amen, breathing guide in session, haptics via Capacitor, PWA service worker, migration tests still not written.
 
 ## Caveats
 

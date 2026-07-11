@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Sheet, type SheetAnchor } from './Sheet'
+import { CloseIcon } from './icons'
 import { useVesper } from '../store/useVesper'
 import { isSameDay, longDate, timeAgo } from '../lib/format'
 
@@ -17,12 +18,14 @@ type Mode = 'view' | 'edit' | 'answer'
 
 export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }: Props) {
   const prayer = useVesper((s) => s.prayers.find((p) => p.id === prayerId))
-  const { pray, updatePrayer, addJournal, markAnswered, reopen, removePrayer } =
+  const canvases = useVesper((s) => s.canvases)
+  const { pray, updatePrayer, addJournal, removeJournal, markAnswered, reopen, removePrayer } =
     useVesper.getState()
 
   const [mode, setMode] = useState<Mode>('view')
   const [title, setTitle] = useState(prayer?.title ?? '')
   const [description, setDescription] = useState(prayer?.description ?? '')
+  const [canvasId, setCanvasId] = useState(prayer?.canvasId ?? '')
   const [note, setNote] = useState('')
   const [journalOpen, setJournalOpen] = useState(false)
   const [journalText, setJournalText] = useState('')
@@ -34,7 +37,11 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
   const saveEdit = (e: FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    updatePrayer(prayer.id, { title: title.trim(), description: description.trim() || undefined })
+    updatePrayer(prayer.id, {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      ...(canvasId && canvasId !== prayer.canvasId ? { canvasId } : {}),
+    })
     setMode('view')
   }
 
@@ -57,6 +64,23 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
             </span>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           </label>
+          {canvases.length > 1 && (
+            <div className="field">
+              <span>Canvas</span>
+              <div className="chips">
+                {canvases.map((canvas) => (
+                  <button
+                    key={canvas.id}
+                    type="button"
+                    className={canvasId === canvas.id ? 'is-active' : ''}
+                    onClick={() => setCanvasId(canvas.id)}
+                  >
+                    {canvas.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="row">
             <button className="btn btn--primary" type="submit" disabled={!title.trim()}>
               Save
@@ -142,6 +166,9 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
                 : 'Not prayed for yet'}
               <br />
               Carried since {longDate(prayer.createdAt)}
+              {canvases.length > 1
+                ? ` · ${canvases.find((c) => c.id === prayer.canvasId)?.name ?? ''}`
+                : ''}
             </p>
 
             {prayedToday && prayer.status !== 'answered' && (
@@ -154,8 +181,17 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
                   <ul className="journal__list">
                     {[...prayer.journal].reverse().map((entry) => (
                       <li key={entry.at}>
-                        <time>{longDate(entry.at)}</time>
-                        {entry.text}
+                        <div className="journal__entry">
+                          <time>{longDate(entry.at)}</time>
+                          {entry.text}
+                        </div>
+                        <button
+                          className="icon-btn journal__remove"
+                          aria-label="Delete note"
+                          onClick={() => removeJournal(prayer.id, entry.at)}
+                        >
+                          <CloseIcon size={13} />
+                        </button>
                       </li>
                     ))}
                   </ul>

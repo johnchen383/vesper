@@ -17,7 +17,8 @@
   }
 
   input,
-  textarea {
+  textarea,
+  select {
     font: inherit;
     font-size: 15px;
     color: var(--ink);
@@ -38,6 +39,38 @@
     &:focus {
       border-color: var(--accent);
       background: var(--wash-focus);
+    }
+  }
+
+}
+
+// Wrapping pill choices, e.g. picking a canvas for a new prayer.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  button {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--wash);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    transition:
+      background 0.2s,
+      color 0.2s,
+      border-color 0.2s;
+
+    &:hover {
+      background: var(--wash-strong);
+    }
+
+    &.is-active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--ink);
     }
   }
 }
@@ -108,41 +141,44 @@
   padding: 10px 0;
   font-size: 14px;
   cursor: pointer;
+}
 
-  input {
+// Switch visual, used by .toggle-row and the canvas rows: place an <i
+// class="toggle"> directly after a visually hidden checkbox.
+.toggle-row input,
+.canvasrow__vis input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle {
+  flex-shrink: 0;
+  position: relative;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--track);
+  transition: background 0.2s;
+
+  &::after {
+    content: '';
     position: absolute;
-    opacity: 0;
-    pointer-events: none;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(53, 50, 44, 0.25);
+    transition: transform 0.2s;
   }
+}
 
-  .toggle {
-    flex-shrink: 0;
-    position: relative;
-    width: 40px;
-    height: 24px;
-    border-radius: 999px;
-    background: var(--track);
-    transition: background 0.2s;
+input:checked + .toggle {
+  background: var(--accent);
 
-    &::after {
-      content: '';
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 1px 4px rgba(53, 50, 44, 0.25);
-      transition: transform 0.2s;
-    }
-  }
-
-  input:checked + .toggle {
-    background: var(--accent);
-
-    &::after {
-      transform: translateX(16px);
-    }
+  &::after {
+    transform: translateX(16px);
   }
 }

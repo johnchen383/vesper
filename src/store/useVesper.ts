@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import type { Prayer, Settings } from '../types'
+import type { Prayer, PrayerCanvas, Settings } from '../types'
 import { localAdapter } from '../storage/adapter'
 
 // Curated orb tones (see the engine's palette); gold is reserved for answered prayers.
@@ -9,31 +9,59 @@ const HUES = [216, 8, 100, 340, 275, 185]
 const MAX_PRAYED_ENTRIES = 1000
 
 /** Bump when the persisted shape changes, and handle it in `migrate` below. */
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 interface VesperState {
   prayers: Prayer[]
+  canvases: PrayerCanvas[]
+  /** Canvases currently shown on the main view. Invariant: at least one. */
+  visibleCanvasIds: string[]
   settings: Settings
-  addPrayer: (title: string, description?: string) => string
+  addPrayer: (title: string, description?: string, canvasId?: string) => string
   pray: (id: string) => void
-  updatePrayer: (id: string, patch: Partial<Pick<Prayer, 'title' | 'description'>>) => void
+  updatePrayer: (
+    id: string,
+    patch: Partial<Pick<Prayer, 'title' | 'description' | 'canvasId'>>
+  ) => void
   addJournal: (id: string, text: string) => void
+  removeJournal: (id: string, at: number) => void
   markAnswered: (id: string, note?: string) => void
   reopen: (id: string) => void
   removePrayer: (id: string) => void
+  addCanvas: (name: string) => string
+  renameCanvas: (id: string, name: string) => void
+  removeCanvas: (id: string, deletePrayers?: boolean) => void
+  toggleCanvasVisible: (id: string) => void
   setSettings: (patch: Partial<Settings>) => void
-  replaceAll: (prayers: Prayer[], settings?: Partial<Settings>) => void
+  replaceAll: (
+    prayers: Prayer[],
+    canvases?: PrayerCanvas[],
+    settings?: Partial<Settings>
+  ) => void
 }
 
-function nextHue(prayers: Prayer[]): number {
-  const counts = HUES.map((hue) => prayers.filter((p) => p.hue === hue).length)
+function leastUsedHue(used: { hue: number }[]): number {
+  const counts = HUES.map((hue) => used.filter((u) => u.hue === hue).length)
   return HUES[counts.indexOf(Math.min(...counts))]
 }
+
+function makeCanvas(name: string, existing: PrayerCanvas[]): PrayerCanvas {
+  return {
+    id: crypto.randomUUID(),
+    name: name.trim(),
+    hue: leastUsedHue(existing),
+    createdAt: Date.now(),
+  }
+}
+
+const initialCanvas = makeCanvas('Default', [])
 
 export const useVesper = create<VesperState>()(
   persist(
     (set, get) => ({
       prayers: [],
+      canvases: [initialCanvas],
+      visibleCanvasIds: [initialCanvas.id],
       settings: {
         theme: 'light',
         halfLifeDays: 7,
@@ -45,15 +73,20 @@ export const useVesper = create<VesperState>()(
         showFps: false,
       },
 
-      addPrayer: (title, description) => {
+      addPrayer: (title, description, canvasId) => {
+        const { prayers, canvases, visibleCanvasIds } = get()
+        const target =
+          canvasId ??
+          (visibleCanvasIds.length === 1 ? visibleCanvasIds[0] : canvases[0].id)
         const prayer: Prayer = {
           id: crypto.randomUUID(),
           title: title.trim(),
           description: description?.trim() || undefined,
-          hue: nextHue(get().prayers),
+          hue: leastUsedHue(prayers),
           createdAt: Date.now(),
           prayedAt: [],
           journal: [],
+          canvasId: target,
           status: 'active',
         }
         set((s) => ({ prayers: [...s.prayers, prayer] }))
@@ -83,6 +116,13 @@ export const useVesper = create<VesperState>()(
           ),
         })),
 
+      removeJournal: (id, at) =>
+        set((s) => ({
+          prayers: s.prayers.map((p) =>
+            p.id === id ? { ...p, journal: p.journal.filter((e) => e.at !== at) } : p
+          ),
+        })),
+
       markAnswered: (id, note) =>
         set((s) => ({
           prayers: s.prayers.map((p) =>
@@ -108,10 +148,60 @@ export const useVesper = create<VesperState>()(
 
       removePrayer: (id) => set((s) => ({ prayers: s.prayers.filter((p) => p.id !== id) })),
 
+      addCanvas: (name) => {
+        const canvas = makeCanvas(name, get().canvases)
+        set((s) => ({
+          canvases: [...s.canvases, canvas],
+          visibleCanvasIds: [...s.visibleCanvasIds, canvas.id],
+        }))
+        return canvas.id
+      },
+
+      renameCanvas: (id, name) =>
+        set((s) => ({
+          canvases: s.canvases.map((c) => (c.id === id ? { ...c, name: name.trim() } : c)),
+        })),
+
+      removeCanvas: (id, deletePrayers = false) =>
+        set((s) => {
+          if (s.canvases.length <= 1) return s
+          const remaining = s.canvases.filter((c) => c.id !== id)
+          const fallback = remaining[0].id
+          const visible = s.visibleCanvasIds.filter((v) => v !== id)
+          return {
+            canvases: remaining,
+            // Orphaned prayers either go with the canvas or move to the
+            // first remaining one.
+            prayers: deletePrayers
+              ? s.prayers.filter((p) => p.canvasId !== id)
+              : s.prayers.map((p) =>
+                  p.canvasId === id ? { ...p, canvasId: fallback } : p
+                ),
+            visibleCanvasIds: visible.length > 0 ? visible : [fallback],
+          }
+        }),
+
+      toggleCanvasVisible: (id) =>
+        set((s) => {
+          const visible = s.visibleCanvasIds.includes(id)
+            ? s.visibleCanvasIds.filter((v) => v !== id)
+            : [...s.visibleCanvasIds, id]
+          // Never hide everything.
+          return visible.length > 0 ? { visibleCanvasIds: visible } : s
+        }),
+
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
 
-      replaceAll: (prayers, settings) =>
-        set((s) => ({ prayers, settings: { ...s.settings, ...settings } })),
+      replaceAll: (prayers, canvases, settings) =>
+        set((s) => {
+          const nextCanvases = canvases && canvases.length > 0 ? canvases : s.canvases
+          return {
+            prayers,
+            canvases: nextCanvases,
+            visibleCanvasIds: nextCanvases.map((c) => c.id),
+            settings: { ...s.settings, ...settings },
+          }
+        }),
     }),
     {
       name: 'vesper:v1',
@@ -123,10 +213,22 @@ export const useVesper = create<VesperState>()(
        * the current shape.
        */
       migrate: (persisted, version) => {
-        const state = persisted as { prayers?: Prayer[]; settings?: Partial<Settings> }
+        const state = persisted as {
+          prayers?: Prayer[]
+          canvases?: PrayerCanvas[]
+          visibleCanvasIds?: string[]
+          settings?: Partial<Settings>
+        }
         if (version < 2) {
           // v2 added per-prayer journals.
           state.prayers = (state.prayers ?? []).map((p) => ({ ...p, journal: p.journal ?? [] }))
+        }
+        if (version < 3) {
+          // v3 added canvases; existing prayers move onto one default canvas.
+          const def = makeCanvas('Default', [])
+          state.canvases = [def]
+          state.visibleCanvasIds = [def.id]
+          state.prayers = (state.prayers ?? []).map((p) => ({ ...p, canvasId: def.id }))
         }
         return state
       },

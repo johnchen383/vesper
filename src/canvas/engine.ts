@@ -6,6 +6,8 @@ export interface OrbInput {
   answered: boolean
   prayedToday: boolean
   weight: number
+  /** Index of this orb's canvas among the visible ones (constellation group). */
+  group: number
 }
 
 interface Orb extends OrbInput {
@@ -117,6 +119,13 @@ export class OrbEngine {
   fps = 60
   /** Debug: draw a faint cross at the engine's understanding of centre. */
   showCenter = false
+  /** Number of constellation groups (visible canvases). 1 = everything central. */
+  groups = 1
+
+  private groupSizes: number[] = []
+  private orbCount = 0
+  /** Shrinks orbs as the field gets crowded. */
+  private density = 1
   /** Fired when a long-press charge completes — the caller records the prayer. */
   onChargeComplete: ((id: string) => void) | null = null
   chargeId: string | null = null
@@ -178,6 +187,13 @@ export class OrbEngine {
     // The very first prayer takes the demo orb's place at centre stage.
     const dropIn = this.orbs.has(DEMO_ID) && inputs.length === 1
 
+    this.orbCount = inputs.length
+    this.density = inputs.length > 30 ? Math.max(0.6, Math.sqrt(30 / inputs.length)) : 1
+    this.groupSizes = []
+    for (const input of inputs) {
+      this.groupSizes[input.group] = (this.groupSizes[input.group] ?? 0) + 1
+    }
+
     const ids = new Set(inputs.map((o) => o.id))
     // The demo orb is managed below, not by the inputs list.
     for (const id of this.orbs.keys()) if (!ids.has(id) && id !== DEMO_ID) this.orbs.delete(id)
@@ -186,12 +202,17 @@ export class OrbEngine {
       if (existing) {
         Object.assign(existing, input)
       } else {
-        // Seed position from the id so an orb reappears where it lived before.
+        // Seed position from the id (so an orb reappears in a familiar spot)
+        // scattered around its constellation's anchor.
         const seed = hash(input.id)
+        const anchor = this.anchorOf(input.group)
+        const spread = this.spreadOf(input.group)
         this.orbs.set(input.id, {
           ...input,
-          x: dropIn ? this.w / 2 : (0.15 + 0.7 * ((seed % 1000) / 1000)) * this.w,
-          y: dropIn ? this.h * 0.28 : (0.15 + 0.6 * (((seed >> 10) % 1000) / 1000)) * this.h,
+          x: dropIn ? this.w / 2 : anchor.x + ((seed % 1000) / 1000 - 0.5) * spread * 1.4,
+          y: dropIn
+            ? this.h * 0.28
+            : anchor.y + (((seed >> 10) % 1000) / 1000 - 0.5) * spread * 1.4,
           vx: 0,
           vy: dropIn ? 30 : 0,
           heading: ((seed >> 20) % 360) * (Math.PI / 180),
@@ -214,6 +235,7 @@ export class OrbEngine {
           answered: false,
           prayedToday: true, // complete ring — the demo isn't asking anything
           weight: 6,
+          group: 0,
           x: this.w / 2,
           y: this.h * 0.34,
           vx: 0,
@@ -390,7 +412,24 @@ export class OrbEngine {
 
   private radiusOf(orb: Orb): number {
     const weight = Math.min(orb.weight, 40)
-    return this.orbStyle.baseRadius + 10 * (weight / 40) + (orb.answered ? 2 : 0)
+    return (this.orbStyle.baseRadius + 10 * (weight / 40) + (orb.answered ? 2 : 0)) * this.density
+  }
+
+  /** Anchor point for a constellation group, arranged on an ellipse. */
+  private anchorOf(group: number): { x: number; y: number } {
+    if (this.groups <= 1) return { x: this.w / 2, y: this.h / 2 }
+    const angle = -Math.PI / 2 + (group / this.groups) * TAU
+    return {
+      x: this.w / 2 + Math.cos(angle) * this.w * 0.27,
+      y: this.h / 2 + Math.sin(angle) * this.h * 0.25,
+    }
+  }
+
+  /** How far a group's members comfortably spread around their anchor. */
+  private spreadOf(group: number): number {
+    if (this.groups <= 1) return Math.min(this.w, this.h) * 0.5 || 1
+    const count = this.groupSizes[group] ?? 1
+    return Math.min(90 + 26 * Math.sqrt(count), Math.min(this.w, this.h) * 0.3)
   }
 
   private step(dt: number) {
@@ -450,21 +489,26 @@ export class OrbEngine {
       orb.vx += (Math.cos(orb.heading) * drift - orb.vx) * steer
       orb.vy += (Math.sin(orb.heading) * drift - orb.vy) * steer
 
-      // Inverted gravity: barely felt near the centre, pulls increasingly
-      // hard toward it out on the fringes so the canvas stays gathered.
-      // Distances are normalised per axis (screen edge = 1 in every
-      // direction), so narrow portrait screens centre just as firmly
-      // sideways as wide ones. Prayers still waiting on today's prayer feel
-      // an extra homeward pull; prayed-for orbs may roam wider.
+      // Anchor gravity: each orb is pulled toward its constellation's anchor
+      // (screen centre when one canvas is shown). The pull has real strength
+      // in the mid-range, so clusters gather around their anchor instead of
+      // settling wherever they were seeded, while staying gentle enough
+      // near the anchor to meander. Prayers still waiting on today's prayer
+      // feel an extra homeward pull.
       if (!this.reduceMotion) {
-        const nx = (cx - orb.x) / (this.w / 2)
-        const ny = (cy - orb.y) / (this.h / 2)
-        const dn = Math.hypot(nx, ny)
-        if (dn > 0.01) {
+        const anchor = this.anchorOf(orb.group)
+        const spread = this.spreadOf(orb.group)
+        const dx = anchor.x - orb.x
+        const dy = anchor.y - orb.y
+        const d = Math.hypot(dx, dy)
+        if (d > 1) {
           const waiting = !orb.answered && !orb.prayedToday
-          const a = 24 * dn ** 2.4 + (waiting ? 12 * dn : 0)
-          orb.vx += (nx / dn) * a * dt
-          orb.vy += (ny / dn) * a * dt
+          const a = Math.min(
+            160,
+            30 * (d / spread) ** 1.8 + (waiting ? 12 * (d / spread) : 0)
+          )
+          orb.vx += (dx / d) * a * dt
+          orb.vy += (dy / d) * a * dt
         }
       }
 
@@ -899,7 +943,16 @@ export class OrbEngine {
       }
     }
 
-    if (this.showLabels && orb.label) {
+    // In a crowded field, keep labels only where attention is: prayers still
+    // waiting on today, and whatever is hovered or focused.
+    const labelVisible =
+      this.showLabels &&
+      orb.label &&
+      (this.orbCount <= 40 ||
+        (!orb.prayedToday && !orb.answered) ||
+        this.hoverId === orb.id ||
+        focused)
+    if (labelVisible) {
       ctx.font = LABEL_FONT
       ctx.textAlign = 'center'
       ctx.textBaseline = 'top'

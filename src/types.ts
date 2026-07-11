@@ -5,6 +5,14 @@ export interface JournalEntry {
   text: string
 }
 
+/** A named collection of prayers; any subset can be shown on the main view. */
+export interface PrayerCanvas {
+  id: string
+  name: string
+  hue: number
+  createdAt: number
+}
+
 export interface Prayer {
   id: string
   title: string
@@ -16,6 +24,8 @@ export interface Prayer {
   prayedAt: number[]
   /** Dated notes — the ongoing story of this prayer. */
   journal: JournalEntry[]
+  /** The canvas this prayer lives on. */
+  canvasId: string
   status: PrayerStatus
   answeredAt?: number
   answeredNote?: string

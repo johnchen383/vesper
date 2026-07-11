@@ -72,6 +72,60 @@ export function FlameIcon({ size = 20 }: IconProps) {
   )
 }
 
+export function LayersIcon({ size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5" />
+    </svg>
+  )
+}
+
+export function PencilIcon({ size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M17 3.5l3.5 3.5L8 19.5 4 20l.5-4L17 3.5z" />
+    </svg>
+  )
+}
+
+export function TrashIcon({ size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0l-.8 12a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7" />
+    </svg>
+  )
+}
+
 export function CloseIcon({ size = 20 }: IconProps) {
   return (
     <svg

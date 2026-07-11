@@ -15,6 +15,9 @@ interface Props {
 /** The floating card shown while praying through a session, one orb at a time. */
 export function SessionPanel({ prayerId, index, total, onAmen, onSkip, onEnd }: Props) {
   const prayer = useVesper((s) => s.prayers.find((p) => p.id === prayerId))
+  const canvasName = useVesper((s) =>
+    s.canvases.length > 1 ? s.canvases.find((c) => c.id === prayer?.canvasId)?.name : undefined
+  )
 
   // If the prayer disappears mid-session (deleted elsewhere), move along.
   useEffect(() => {
@@ -30,6 +33,7 @@ export function SessionPanel({ prayerId, index, total, onAmen, onSkip, onEnd }: 
       <header className="session__header">
         <span className="session__progress">
           {index + 1} of {total}
+          {canvasName ? ` · ${canvasName}` : ''}
         </span>
         <button className="icon-btn" onClick={onEnd} aria-label="End session">
           <CloseIcon size={16} />

@@ -197,7 +197,7 @@ export function SettingsSheet({ onClose, onAbout }: Props) {
         <p className="hint">Prayers are stored on this device only.</p>
         <div className="row">
           <button className="btn" onClick={exportBackup} disabled={prayerCount === 0}>
-            Export backup
+            Export
           </button>
           <button className="btn" onClick={() => fileRef.current?.click()}>
             Import
@@ -227,7 +227,7 @@ export function SettingsSheet({ onClose, onAbout }: Props) {
           >
             {confirmClear
               ? `Really erase ${prayerCount} prayer${prayerCount === 1 ? '' : 's'}?`
-              : 'Erase everything'}
+              : 'Erase all'}
           </button>
         </div>
         {message && <p className="hint settings__message">{message}</p>}

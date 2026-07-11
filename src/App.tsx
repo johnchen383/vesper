@@ -8,6 +8,7 @@ import { AddPrayerSheet } from './components/AddPrayerSheet'
 import { PrayerSheet } from './components/PrayerSheet'
 import { SettingsSheet } from './components/SettingsSheet'
 import { AboutSheet } from './components/AboutSheet'
+import { CanvasesSheet } from './components/CanvasesSheet'
 import { EmptyState } from './components/EmptyState'
 import { SessionPanel } from './components/SessionPanel'
 import { VespersBanner } from './components/VespersBanner'
@@ -20,6 +21,7 @@ type Panel =
   | { kind: 'add' }
   | { kind: 'settings' }
   | { kind: 'about' }
+  | { kind: 'canvases' }
   | { kind: 'prayer'; id: string; anchor: { x: number; y: number; r: number } }
   | null
 
@@ -30,13 +32,16 @@ interface Session {
 
 const VESPERS_KEY = 'vesper:vespers-dismissed'
 
-/** Active prayers not yet prayed for today, oldest-prayed first. */
-function sessionQueue(prayers: Prayer[]): string[] {
+/** Active prayers on visible canvases not yet prayed for today, oldest-prayed first. */
+function sessionQueue(prayers: Prayer[], visibleCanvasIds: string[]): string[] {
   const now = Date.now()
   const lastOf = (p: Prayer) => p.prayedAt[p.prayedAt.length - 1] ?? p.createdAt
   return prayers
     .filter(
-      (p) => p.status === 'active' && !(p.prayedAt.length > 0 && isSameDay(lastOf(p), now))
+      (p) =>
+        p.status === 'active' &&
+        visibleCanvasIds.includes(p.canvasId) &&
+        !(p.prayedAt.length > 0 && isSameDay(lastOf(p), now))
     )
     .sort((a, b) => lastOf(a) - lastOf(b))
     .map((p) => p.id)
@@ -54,9 +59,12 @@ export default function App() {
   const toastTimer = useRef(0)
   const hydrated = useHydrated()
   const prayers = useVesper((s) => s.prayers)
+  const canvases = useVesper((s) => s.canvases)
+  const visibleCanvasIds = useVesper((s) => s.visibleCanvasIds)
   const pray = useVesper((s) => s.pray)
   const theme = useVesper((s) => s.settings.theme)
   const showFps = useVesper((s) => s.settings.showFps)
+  const showAnswered = useVesper((s) => s.settings.showAnswered)
 
   useEffect(() => {
     const apply = () => {
@@ -74,14 +82,22 @@ export default function App() {
   }, [theme])
 
   const answeredCount = prayers.filter((p) => p.status === 'answered').length
-  const waitingCount = prayers.filter(
+  const waitingCount = sessionQueue(prayers, visibleCanvasIds).length
+
+  const visibleCanvases = canvases.filter((c) => visibleCanvasIds.includes(c.id))
+  const visibleOrbCount = prayers.filter(
     (p) =>
-      p.status === 'active' &&
-      !(p.prayedAt.length && isSameDay(p.prayedAt[p.prayedAt.length - 1], Date.now()))
+      visibleCanvasIds.includes(p.canvasId) && (showAnswered || p.status !== 'answered')
   ).length
+  const canvasBarLabel =
+    visibleCanvases.length === canvases.length
+      ? 'All canvases'
+      : visibleCanvases.length === 1
+        ? visibleCanvases[0].name
+        : `${visibleCanvases[0]?.name ?? 'Canvases'} +${visibleCanvases.length - 1}`
 
   const startSession = () => {
-    const queue = sessionQueue(prayers)
+    const queue = sessionQueue(prayers, visibleCanvasIds)
     if (!queue.length) return
     setPanel(null)
     setView('canvas')
@@ -137,9 +153,20 @@ export default function App() {
       />
 
       {hydrated && prayers.length === 0 && <EmptyState />}
+      {hydrated && prayers.length > 0 && view === 'canvas' && visibleOrbCount === 0 && (
+        <div className="empty">
+          <p className="empty__sub">Nothing on this canvas yet. Add a prayer with +.</p>
+        </div>
+      )}
 
       {showVespers && (
         <VespersBanner count={waitingCount} onBegin={startSession} onDismiss={dismissVespers} />
+      )}
+
+      {canvases.length > 1 && view === 'canvas' && !session && (
+        <button className="canvasbar" onClick={() => setPanel({ kind: 'canvases' })}>
+          {canvasBarLabel}
+        </button>
       )}
 
       {view === 'answered' && (
@@ -162,6 +189,7 @@ export default function App() {
         <Fab
           onAdd={() => setPanel({ kind: 'add' })}
           onPray={waitingCount > 0 ? startSession : undefined}
+          onCanvases={() => setPanel({ kind: 'canvases' })}
           onAnswered={answeredCount > 0 ? () => setView('answered') : undefined}
           onSettings={() => setPanel({ kind: 'settings' })}
         />
@@ -198,6 +226,7 @@ export default function App() {
         />
       )}
       {panel?.kind === 'about' && <AboutSheet onClose={() => setPanel(null)} />}
+      {panel?.kind === 'canvases' && <CanvasesSheet onClose={() => setPanel(null)} />}
       {panel?.kind === 'prayer' && (
         <PrayerSheet
           prayerId={panel.id}
