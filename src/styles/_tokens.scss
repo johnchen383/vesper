@@ -20,6 +20,8 @@ $font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --float: rgba(255, 254, 250, 0.65);
   --float-strong: rgba(255, 254, 250, 0.9);
   --veil: rgba(244, 240, 232, 0.45);
+  --scrollbar: rgba(53, 50, 44, 0.2);
+  --scrollbar-hover: rgba(53, 50, 44, 0.35);
 }
 
 :root[data-theme='dark'] {
@@ -40,4 +42,6 @@ $font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --float: rgba(62, 60, 72, 0.7);
   --float-strong: rgba(74, 72, 84, 0.9);
   --veil: rgba(10, 9, 18, 0.45);
+  --scrollbar: rgba(234, 232, 242, 0.2);
+  --scrollbar-hover: rgba(234, 232, 242, 0.35);
 }

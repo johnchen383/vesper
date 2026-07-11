@@ -23,7 +23,7 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
         <p className="about__blurb">
           Vesper is built around consistency. An orb brightens as you return to it and slowly dims
           when you drift away, never as a punishment, only as a quiet invitation to come back.
-          "Pray without ceasing" (1 Thessalonians 5:17) is less about never stopping and more
+          To "pray without ceasing" (1 Thessalonians 5:17) is less about never stopping and more
           about always returning, and that rhythm of returning is what this canvas hopes to
           encourage.
         </p>
@@ -32,9 +32,9 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
       <section className="settings__section">
         <h3>Your data</h3>
         <p className="hint">
-          Everything you write stays on this device, stored in your browser's IndexedDB. Nothing
+          Everything you write stays on this device, stored in your browser's cache. Nothing
           is sent anywhere. There is no account, no server, and no analytics. Use{' '}
-          <strong>Settings → Export backup</strong> to keep a copy or move to another device.
+          <strong>Settings → Export</strong> to keep a copy or move to another device.
         </p>
       </section>
 
