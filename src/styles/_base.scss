@@ -4,6 +4,7 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -41,6 +42,7 @@ body {
   width: 100%;
   height: 100%;
   touch-action: none; // orb dragging handles its own pointer gestures
+  -webkit-touch-callout: none; // no iOS callout on long-press-to-pray
 }
 
 button {
