@@ -177,7 +177,8 @@ export class OrbEngine {
     const dropIn = this.orbs.has(DEMO_ID) && inputs.length === 1
 
     const ids = new Set(inputs.map((o) => o.id))
-    for (const id of this.orbs.keys()) if (!ids.has(id)) this.orbs.delete(id)
+    // The demo orb is managed below, not by the inputs list.
+    for (const id of this.orbs.keys()) if (!ids.has(id) && id !== DEMO_ID) this.orbs.delete(id)
     for (const input of inputs) {
       const existing = this.orbs.get(input.id)
       if (existing) {
@@ -448,17 +449,17 @@ export class OrbEngine {
       orb.vx += (Math.cos(orb.heading) * drift - orb.vx) * steer
       orb.vy += (Math.sin(orb.heading) * drift - orb.vy) * steer
 
-      // Inverted gravity: barely felt near the centre, pulls increasingly
-      // hard toward it out on the fringes so the canvas stays gathered.
-      // Prayers still waiting on today's prayer feel an extra homeward pull,
-      // drifting into the field of view; prayed-for orbs may roam wider.
+      // Inverted gravity: a gentle ever-present pull toward the centre that
+      // strengthens toward the fringes, so orbs cluster loosely around the
+      // middle while the innermost region stays free to meander. Prayers
+      // still waiting on today's prayer feel an extra homeward pull.
       if (!this.reduceMotion) {
         const dx = cx - orb.x
         const dy = cy - orb.y
         const d = Math.hypot(dx, dy)
         if (d > 1) {
           const waiting = !orb.answered && !orb.prayedToday
-          const a = 24 * (d / ref) ** 2.4 + (waiting ? 12 * (d / ref) : 0)
+          const a = 26 * (d / ref) ** 2 + 10 * (d / ref) + (waiting ? 12 * (d / ref) : 0)
           orb.vx += (dx / d) * a * dt
           orb.vy += (dy / d) * a * dt
         }

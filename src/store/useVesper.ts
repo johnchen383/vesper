@@ -150,6 +150,11 @@ export const useVesper = create<VesperState>()(
 /** True once the (async) persisted state has been loaded into the store. */
 export function useHydrated(): boolean {
   const [hydrated, setHydrated] = useState(useVesper.persist.hasHydrated())
-  useEffect(() => useVesper.persist.onFinishHydration(() => setHydrated(true)), [])
+  useEffect(() => {
+    const unsubscribe = useVesper.persist.onFinishHydration(() => setHydrated(true))
+    // Hydration may have completed between first render and this subscription.
+    if (useVesper.persist.hasHydrated()) setHydrated(true)
+    return unsubscribe
+  }, [])
   return hydrated
 }
