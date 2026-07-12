@@ -497,22 +497,36 @@ export class OrbEngine {
       // feel an extra homeward pull.
       if (!this.reduceMotion) {
         const anchor = this.anchorOf(orb.group)
-        const spread = this.spreadOf(orb.group)
         const dx = anchor.x - orb.x
         const dy = anchor.y - orb.y
         const d = Math.hypot(dx, dy)
+        // Normalised anchor distance: for a lone cluster, per-axis against
+        // the actual screen shape (a wide window pulls just as firmly
+        // sideways as vertically); for constellations, radial against the
+        // group's spread.
+        const dn =
+          this.groups <= 1
+            ? Math.hypot(dx / (this.w * 0.45), dy / (this.h * 0.45))
+            : d / this.spreadOf(orb.group)
         if (d > 1) {
           const waiting = !orb.answered && !orb.prayedToday
           // A lone cluster can breathe; multiple constellations hold their
           // shape more firmly so the grouping stays legible.
           const strength = this.groups <= 1 ? 15 : 30
-          const a = Math.min(
-            160,
-            strength * (d / spread) ** 1.8 + (waiting ? 12 * (d / spread) : 0)
-          )
+          const a = Math.min(160, strength * dn ** 1.8 + (waiting ? 12 * dn : 0))
           orb.vx += (dx / d) * a * dt
           orb.vy += (dy / d) * a * dt
         }
+      }
+
+      // Soft walls: whatever the gravity tuning, an orb nosing past an edge
+      // is eased back in.
+      if (!this.reduceMotion) {
+        const edge = 40
+        if (orb.x < edge) orb.vx += (edge - orb.x) * 3 * dt
+        if (orb.x > this.w - edge) orb.vx -= (orb.x - (this.w - edge)) * 3 * dt
+        if (orb.y < edge) orb.vy += (edge - orb.y) * 3 * dt
+        if (orb.y > this.h - edge) orb.vy -= (orb.y - (this.h - edge)) * 3 * dt
       }
 
       const speed = Math.hypot(orb.vx, orb.vy)
