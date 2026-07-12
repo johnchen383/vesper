@@ -427,7 +427,7 @@ export class OrbEngine {
 
   /** How far a group's members comfortably spread around their anchor. */
   private spreadOf(group: number): number {
-    if (this.groups <= 1) return Math.min(this.w, this.h) * 0.5 || 1
+    if (this.groups <= 1) return Math.min(this.w, this.h) * 0.9 || 1
     const count = this.groupSizes[group] ?? 1
     return Math.min(90 + 26 * Math.sqrt(count), Math.min(this.w, this.h) * 0.3)
   }
@@ -503,9 +503,12 @@ export class OrbEngine {
         const d = Math.hypot(dx, dy)
         if (d > 1) {
           const waiting = !orb.answered && !orb.prayedToday
+          // A lone cluster can breathe; multiple constellations hold their
+          // shape more firmly so the grouping stays legible.
+          const strength = this.groups <= 1 ? 15 : 30
           const a = Math.min(
             160,
-            30 * (d / spread) ** 1.8 + (waiting ? 12 * (d / spread) : 0)
+            strength * (d / spread) ** 1.8 + (waiting ? 12 * (d / spread) : 0)
           )
           orb.vx += (dx / d) * a * dt
           orb.vy += (dy / d) * a * dt

@@ -68,6 +68,7 @@ export const useVesper = create<VesperState>()(
         halfLifeDays: 7,
         drift: 'calm',
         orb: { size: 'medium', rings: 3, glow: 'soft', core: 'soft' },
+        clusterByCanvas: true,
         showTitles: true,
         showAnswered: true,
         reduceMotion: false,

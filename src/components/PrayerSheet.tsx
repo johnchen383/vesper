@@ -253,7 +253,11 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
                       value={journalText}
                       onChange={(e) => setJournalText(e.target.value)}
                       rows={2}
-                      placeholder="What's happening with this prayer?"
+                      placeholder={
+                        prayer.kind === 'person'
+                          ? "What's going on in their life?"
+                          : "What's happening with this prayer?"
+                      }
                     />
                     <div className="row">
                       <button className="btn btn--primary" type="submit" disabled={!journalText.trim()}>

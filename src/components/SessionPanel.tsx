@@ -41,11 +41,41 @@ export function SessionPanel({ prayerId, index, total, onAmen, onSkip, onEnd }: 
       </header>
       <h3 className="session__title">{prayer.title}</h3>
       {prayer.description && <p className="session__desc">{prayer.description}</p>}
+      {prayer.journal.length > 0 && (
+        <ul className="journal__list session__notes">
+          {[...prayer.journal].reverse().map((entry) => (
+            <li key={entry.at} className={entry.answeredAt ? 'is-answered' : ''}>
+              <div className="journal__entry">
+                <time>
+                  {longDate(entry.at)}
+                  {entry.answeredAt ? ` · answered ${longDate(entry.answeredAt)}` : ''}
+                </time>
+                {entry.text}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
       <p className="session__meta">
         {prayer.prayedAt.length > 0
           ? `Last prayed ${timeAgo(lastPrayed)}`
           : `Carried since ${longDate(prayer.createdAt)}`}
       </p>
+      {prayer.journal.length > 0 && (
+        <ul className="journal__list session__notes">
+          {[...prayer.journal].reverse().map((entry) => (
+            <li key={entry.at} className={entry.answeredAt ? 'is-answered' : ''}>
+              <div className="journal__entry">
+                <time>
+                  {longDate(entry.at)}
+                  {entry.answeredAt ? ` · answered ${longDate(entry.answeredAt)}` : ''}
+                </time>
+                {entry.text}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="row">
         <button className="btn btn--primary" onClick={() => onAmen(prayer.id)}>
           Amen

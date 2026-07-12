@@ -7,8 +7,12 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 12px;
+  // The container spans the (hidden) action stack; only the buttons
+  // themselves may catch pointers, or they'd block orb drags beneath.
+  pointer-events: none;
 
   &__main {
+    pointer-events: auto;
     display: grid;
     place-items: center;
     width: 56px;

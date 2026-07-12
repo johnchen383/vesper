@@ -51,6 +51,8 @@ export interface Settings {
   /** How quickly orbs wander the canvas. */
   drift: 'calm' | 'lively'
   orb: OrbDesign
+  /** Gather each visible canvas into its own constellation. */
+  clusterByCanvas: boolean
   showTitles: boolean
   showAnswered: boolean
   reduceMotion: boolean

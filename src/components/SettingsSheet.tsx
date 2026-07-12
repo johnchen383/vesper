@@ -155,6 +155,15 @@ export function SettingsSheet({ onClose, onAbout }: Props) {
       <section className="settings__section">
         <h3>Canvas</h3>
         <label className="toggle-row">
+          <span>Cluster by canvas</span>
+          <input
+            type="checkbox"
+            checked={settings.clusterByCanvas}
+            onChange={(e) => setSettings({ clusterByCanvas: e.target.checked })}
+          />
+          <i className="toggle" />
+        </label>
+        <label className="toggle-row">
           <span>Show prayer titles</span>
           <input
             type="checkbox"
