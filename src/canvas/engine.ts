@@ -74,6 +74,9 @@ const TAU = Math.PI * 2
 const DEMO_ID = '__demo'
 /** How far an orb may wander from home before gravity reaches full strength. */
 const LEASH = 110
+/** Soft-wall margins; vertical is deeper so labels and top/bottom UI breathe. */
+const WALL_X = 40
+const WALL_Y = 80
 const MAX_SPEED = 400
 /** Cap on flick velocity so a throw never sends an orb zooming off screen. */
 const THROW_MAX = 240
@@ -619,15 +622,16 @@ export class OrbEngine {
       }
 
       // Soft walls: whatever the gravity tuning, an orb nosing past an edge
-      // is eased back in.
+      // is eased back in. Top and bottom sit deeper so labels and UI breathe.
       if (!this.reduceMotion) {
-        const edge = 40
+        const edgeX = WALL_X
+        const edgeY = WALL_Y
         let wx = 0
         let wy = 0
-        if (orb.x < edge) wx = (edge - orb.x) * 3
-        if (orb.x > this.w - edge) wx = -(orb.x - (this.w - edge)) * 3
-        if (orb.y < edge) wy = (edge - orb.y) * 3
-        if (orb.y > this.h - edge) wy = -(orb.y - (this.h - edge)) * 3
+        if (orb.x < edgeX) wx = (edgeX - orb.x) * 3
+        if (orb.x > this.w - edgeX) wx = -(orb.x - (this.w - edgeX)) * 3
+        if (orb.y < edgeY) wy = (edgeY - orb.y) * 3
+        if (orb.y > this.h - edgeY) wy = -(orb.y - (this.h - edgeY)) * 3
         if (wx !== 0 || wy !== 0) {
           orb.vx += wx * dt
           orb.vy += wy * dt
@@ -664,11 +668,9 @@ export class OrbEngine {
         const uy = dy / d
 
         // Long-range personal space: a gentle preference for openness.
-        // Kept weaker than home gravity so crowding never expels a placed
-        // orb from the field's centre.
-        const space = radii * 2
+        const space = radii * 2.3
         if (d < space) {
-          const soft = 12 * (1 - d / space) ** 2
+          const soft = 30 * (1 - d / space) ** 2
           if (a.id !== this.dragId && a.id !== this.focusId) {
             a.vx -= ux * soft * dt
             a.vy -= uy * soft * dt
@@ -865,7 +867,7 @@ export class OrbEngine {
     // Soft-wall margin.
     ctx.strokeStyle = 'rgba(217, 138, 149, 0.4)'
     ctx.setLineDash([5, 5])
-    ctx.strokeRect(40, 40, this.w - 80, this.h - 80)
+    ctx.strokeRect(WALL_X, WALL_Y, this.w - WALL_X * 2, this.h - WALL_Y * 2)
     ctx.setLineDash([])
 
     // Centre cross.
