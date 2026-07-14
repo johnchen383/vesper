@@ -25,6 +25,8 @@ interface Orb extends OrbInput {
    */
   homeOx: number
   homeOy: number
+  /** True while gliding after a throw: home follows until the orb rests. */
+  settling: boolean
   /** Recent positions while moving fast; drawn as a fading light streak. */
   trail: { x: number; y: number; at: number }[]
   /** 1 → 0 while playing the answered-ascension moment. */
@@ -232,6 +234,7 @@ export class OrbEngine {
           y: startY,
           homeOx: startX - anchor.x,
           homeOy: startY - anchor.y,
+          settling: false,
           vx: 0,
           vy: dropIn ? 30 : 0,
           heading: ((seed >> 20) % 360) * (Math.PI / 180),
@@ -259,6 +262,7 @@ export class OrbEngine {
           y: this.h * 0.34,
           homeOx: 0,
           homeOy: 0,
+          settling: false,
           vx: 0,
           vy: 0,
           heading: 0,
@@ -368,14 +372,9 @@ export class OrbEngine {
       const scale = speed > THROW_MAX ? THROW_MAX / speed : 1
       orb.vx = this.dragVx * scale
       orb.vy = this.dragVy * scale
-      // The orb's new home is roughly where it will glide to a rest, so it
-      // stays in its dropped neighbourhood instead of sliding back.
-      const anchor = this.anchorOf(orb.group)
-      const edge = 60
-      const restX = Math.min(this.w - edge, Math.max(edge, orb.x + orb.vx * 1.4))
-      const restY = Math.min(this.h - edge, Math.max(edge, orb.y + orb.vy * 1.4))
-      orb.homeOx = restX - anchor.x
-      orb.homeOy = restY - anchor.y
+      // Glide freely on momentum; home follows and freezes where the orb
+      // actually comes to rest (see step), so nothing tugs it mid-flight.
+      orb.settling = true
     }
     this.dragId = null
   }
@@ -558,7 +557,16 @@ export class OrbEngine {
       // feel an extra homeward pull.
       if (!this.reduceMotion) {
         const anchor = this.anchorOf(orb.group)
-        const spread = this.spreadOf(orb.group)
+
+        // A thrown orb glides on pure momentum: no pulls act on it, and its
+        // home trails along, freezing wherever it comes to rest.
+        if (orb.settling) {
+          orb.homeOx = orb.x - anchor.x
+          orb.homeOy = orb.y - anchor.y
+          if (Math.hypot(orb.vx, orb.vy) <= Math.max(12, drift * 1.1)) {
+            orb.settling = false
+          }
+        }
 
         // Gravity pulls toward the orb's HOME, so a dragged orb keeps its
         // dropped neighbourhood. Distance is normalised against a fixed
@@ -570,7 +578,7 @@ export class OrbEngine {
         const dy = home.y - orb.y
         const d = Math.hypot(dx, dy)
         const dn = d / LEASH
-        if (d > 1) {
+        if (d > 1 && !orb.settling) {
           // A lone cluster can breathe; multiple constellations hold their
           // shape more firmly so the grouping stays legible.
           const strength = this.groups <= 1 ? 15 : 30
@@ -579,21 +587,14 @@ export class OrbEngine {
           orb.vy += (dy / d) * a * dt
         }
 
-        // Prayers still waiting on today's prayer drift toward the anchor
-        // itself, greeting you mid-view.
-        if (!orb.answered && !orb.prayedToday) {
-          const ax = anchor.x - orb.x
-          const ay = anchor.y - orb.y
-          const ad = Math.hypot(ax, ay)
-          if (ad > 1) {
-            const adn =
-              this.groups <= 1
-                ? Math.hypot(ax / (this.w * 0.45), ay / (this.h * 0.45))
-                : ad / spread
-            const b = Math.min(60, 12 * adn)
-            orb.vx += (ax / ad) * b * dt
-            orb.vy += (ay / ad) * b * dt
-          }
+        // Prayers still waiting on today's prayer migrate HOME slowly toward
+        // the anchor (half-life ~70s), greeting you mid-view over minutes —
+        // without visibly dragging an orb away from where it was just
+        // placed. Praying frees the home wherever it currently sits.
+        if (!orb.answered && !orb.prayedToday && !orb.settling) {
+          const migrate = Math.min(1, dt * 0.01)
+          orb.homeOx -= orb.homeOx * migrate
+          orb.homeOy -= orb.homeOy * migrate
         }
       }
 
