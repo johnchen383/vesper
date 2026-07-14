@@ -19,6 +19,12 @@ interface Orb extends OrbInput {
   phase: number
   appear: number
   pulse: number
+  /**
+   * Home offset from the group anchor. Gravity pulls toward home, not the
+   * anchor itself, so a dragged orb settles where it was left.
+   */
+  homeOx: number
+  homeOy: number
   /** Recent positions while moving fast; drawn as a fading light streak. */
   trail: { x: number; y: number; at: number }[]
   /** 1 → 0 while playing the answered-ascension moment. */
@@ -172,6 +178,8 @@ export class OrbEngine {
       for (const orb of this.orbs.values()) {
         orb.x = (orb.x / prevW) * this.w
         orb.y = (orb.y / prevH) * this.h
+        orb.homeOx = (orb.homeOx / prevW) * this.w
+        orb.homeOy = (orb.homeOy / prevH) * this.h
       }
       for (const speck of this.specks) {
         speck.x = (speck.x / prevW) * this.w
@@ -207,12 +215,18 @@ export class OrbEngine {
         const seed = hash(input.id)
         const anchor = this.anchorOf(input.group)
         const spread = this.spreadOf(input.group)
+        const startX = dropIn
+          ? this.w / 2
+          : anchor.x + ((seed % 1000) / 1000 - 0.5) * spread * 1.4
+        const startY = dropIn
+          ? this.h * 0.28
+          : anchor.y + (((seed >> 10) % 1000) / 1000 - 0.5) * spread * 1.4
         this.orbs.set(input.id, {
           ...input,
-          x: dropIn ? this.w / 2 : anchor.x + ((seed % 1000) / 1000 - 0.5) * spread * 1.4,
-          y: dropIn
-            ? this.h * 0.28
-            : anchor.y + (((seed >> 10) % 1000) / 1000 - 0.5) * spread * 1.4,
+          x: startX,
+          y: startY,
+          homeOx: startX - anchor.x,
+          homeOy: startY - anchor.y,
           vx: 0,
           vy: dropIn ? 30 : 0,
           heading: ((seed >> 20) % 360) * (Math.PI / 180),
@@ -238,6 +252,8 @@ export class OrbEngine {
           group: 0,
           x: this.w / 2,
           y: this.h * 0.34,
+          homeOx: 0,
+          homeOy: 0,
           vx: 0,
           vy: 0,
           heading: 0,
@@ -341,6 +357,14 @@ export class OrbEngine {
       const scale = speed > THROW_MAX ? THROW_MAX / speed : 1
       orb.vx = this.dragVx * scale
       orb.vy = this.dragVy * scale
+      // The orb's new home is roughly where it will glide to a rest, so it
+      // stays in its dropped neighbourhood instead of sliding back.
+      const anchor = this.anchorOf(orb.group)
+      const edge = 60
+      const restX = Math.min(this.w - edge, Math.max(edge, orb.x + orb.vx * 1.4))
+      const restY = Math.min(this.h - edge, Math.max(edge, orb.y + orb.vy * 1.4))
+      orb.homeOx = restX - anchor.x
+      orb.homeOy = restY - anchor.y
     }
     this.dragId = null
   }
@@ -497,25 +521,55 @@ export class OrbEngine {
       // feel an extra homeward pull.
       if (!this.reduceMotion) {
         const anchor = this.anchorOf(orb.group)
-        const dx = anchor.x - orb.x
-        const dy = anchor.y - orb.y
+        const spread = this.spreadOf(orb.group)
+
+        // Gravity pulls toward the orb's HOME (anchor + its own offset), so
+        // a dragged orb keeps its dropped neighbourhood. In constellation
+        // mode the offset is clamped so groups stay legible.
+        let ox = orb.homeOx
+        let oy = orb.homeOy
+        if (this.groups > 1) {
+          const len = Math.hypot(ox, oy)
+          const maxLen = spread * 1.1
+          if (len > maxLen) {
+            ox *= maxLen / len
+            oy *= maxLen / len
+          }
+        }
+        const dx = anchor.x + ox - orb.x
+        const dy = anchor.y + oy - orb.y
         const d = Math.hypot(dx, dy)
-        // Normalised anchor distance: for a lone cluster, per-axis against
-        // the actual screen shape (a wide window pulls just as firmly
-        // sideways as vertically); for constellations, radial against the
-        // group's spread.
+        // Normalised distance: for a lone cluster, per-axis against the
+        // actual screen shape (a wide window pulls just as firmly sideways
+        // as vertically); for constellations, radial against the spread.
         const dn =
           this.groups <= 1
             ? Math.hypot(dx / (this.w * 0.45), dy / (this.h * 0.45))
-            : d / this.spreadOf(orb.group)
+            : d / spread
         if (d > 1) {
-          const waiting = !orb.answered && !orb.prayedToday
           // A lone cluster can breathe; multiple constellations hold their
           // shape more firmly so the grouping stays legible.
           const strength = this.groups <= 1 ? 15 : 30
-          const a = Math.min(160, strength * dn ** 1.8 + (waiting ? 12 * dn : 0))
+          const a = Math.min(160, strength * dn ** 1.8)
           orb.vx += (dx / d) * a * dt
           orb.vy += (dy / d) * a * dt
+        }
+
+        // Prayers still waiting on today's prayer drift toward the anchor
+        // itself, greeting you mid-view.
+        if (!orb.answered && !orb.prayedToday) {
+          const ax = anchor.x - orb.x
+          const ay = anchor.y - orb.y
+          const ad = Math.hypot(ax, ay)
+          if (ad > 1) {
+            const adn =
+              this.groups <= 1
+                ? Math.hypot(ax / (this.w * 0.45), ay / (this.h * 0.45))
+                : ad / spread
+            const b = Math.min(60, 12 * adn)
+            orb.vx += (ax / ad) * b * dt
+            orb.vy += (ay / ad) * b * dt
+          }
         }
       }
 
