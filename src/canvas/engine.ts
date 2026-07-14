@@ -123,8 +123,11 @@ export class OrbEngine {
   focusId: string | null = null
   /** Exponential moving average of frames per second. */
   fps = 60
-  /** Debug: draw a faint cross at the engine's understanding of centre. */
-  showCenter = false
+  /**
+   * Debug overlay (tied to the frame-rate setting): centre cross, soft-wall
+   * margin, group anchors with their spread, each orb's home and velocity.
+   */
+  debug = false
   /** Number of constellation groups (visible canvases). 1 = everything central. */
   groups = 1
 
@@ -353,6 +356,12 @@ export class OrbEngine {
   dragEnd() {
     const orb = this.dragId ? this.orbs.get(this.dragId) : null
     if (orb) {
+      // If the pointer rested before release, the last sampled velocity is
+      // stale — a still hand means a still orb, not a throw.
+      if (performance.now() - this.dragLast > 90) {
+        this.dragVx = 0
+        this.dragVy = 0
+      }
       const speed = Math.hypot(this.dragVx, this.dragVy)
       const scale = speed > THROW_MAX ? THROW_MAX / speed : 1
       orb.vx = this.dragVx * scale
@@ -449,6 +458,32 @@ export class OrbEngine {
     }
   }
 
+  /**
+   * The point an orb's gravity actually pulls toward: its group anchor plus
+   * its own home offset, clamped so the target is always well on screen
+   * (seed scatter and drags can otherwise put homes past the edges, leaving
+   * orbs leaning into the walls forever). In constellation mode the offset
+   * is also clamped to the group's spread so clusters stay legible.
+   */
+  private homeOf(orb: Orb): { x: number; y: number } {
+    const anchor = this.anchorOf(orb.group)
+    let ox = orb.homeOx
+    let oy = orb.homeOy
+    if (this.groups > 1) {
+      const len = Math.hypot(ox, oy)
+      const maxLen = this.spreadOf(orb.group) * 1.1
+      if (len > maxLen) {
+        ox *= maxLen / len
+        oy *= maxLen / len
+      }
+    }
+    const m = 70
+    return {
+      x: Math.min(this.w - m, Math.max(m, anchor.x + ox)),
+      y: Math.min(this.h - m, Math.max(m, anchor.y + oy)),
+    }
+  }
+
   /** How far a group's members comfortably spread around their anchor. */
   private spreadOf(group: number): number {
     if (this.groups <= 1) return Math.min(this.w, this.h) * 0.9 || 1
@@ -523,21 +558,11 @@ export class OrbEngine {
         const anchor = this.anchorOf(orb.group)
         const spread = this.spreadOf(orb.group)
 
-        // Gravity pulls toward the orb's HOME (anchor + its own offset), so
-        // a dragged orb keeps its dropped neighbourhood. In constellation
-        // mode the offset is clamped so groups stay legible.
-        let ox = orb.homeOx
-        let oy = orb.homeOy
-        if (this.groups > 1) {
-          const len = Math.hypot(ox, oy)
-          const maxLen = spread * 1.1
-          if (len > maxLen) {
-            ox *= maxLen / len
-            oy *= maxLen / len
-          }
-        }
-        const dx = anchor.x + ox - orb.x
-        const dy = anchor.y + oy - orb.y
+        // Gravity pulls toward the orb's HOME, so a dragged orb keeps its
+        // dropped neighbourhood.
+        const home = this.homeOf(orb)
+        const dx = home.x - orb.x
+        const dy = home.y - orb.y
         const d = Math.hypot(dx, dy)
         // Normalised distance: for a lone cluster, per-axis against the
         // actual screen shape (a wide window pulls just as firmly sideways
@@ -795,18 +820,75 @@ export class OrbEngine {
     for (const orb of this.orbs.values()) this.drawOrb(orb)
     this.drawSparks()
 
-    if (this.showCenter) {
-      const cx = this.w / 2
-      const cy = this.h / 2
-      ctx.strokeStyle = dark ? 'rgba(234,232,242,0.4)' : 'rgba(53,50,44,0.4)'
-      ctx.lineWidth = 1
+    if (this.debug) this.drawDebug(dark)
+  }
+
+  /** Visualises the forces: walls, anchors, spreads, homes, velocities. */
+  private drawDebug(dark: boolean) {
+    const { ctx } = this
+    const ink = dark ? 'rgba(234,232,242,' : 'rgba(53,50,44,'
+    ctx.save()
+    ctx.lineWidth = 1
+
+    // Soft-wall margin.
+    ctx.strokeStyle = 'rgba(217, 138, 149, 0.4)'
+    ctx.setLineDash([5, 5])
+    ctx.strokeRect(40, 40, this.w - 80, this.h - 80)
+    ctx.setLineDash([])
+
+    // Centre cross.
+    const cx = this.w / 2
+    const cy = this.h / 2
+    ctx.strokeStyle = `${ink}0.5)`
+    ctx.beginPath()
+    ctx.moveTo(cx - 14, cy)
+    ctx.lineTo(cx + 14, cy)
+    ctx.moveTo(cx, cy - 14)
+    ctx.lineTo(cx, cy + 14)
+    ctx.stroke()
+
+    // Group anchors and their spread radii.
+    for (let g = 0; g < this.groups; g++) {
+      const anchor = this.anchorOf(g)
+      ctx.strokeStyle = 'rgba(201, 162, 94, 0.8)'
       ctx.beginPath()
-      ctx.moveTo(cx - 14, cy)
-      ctx.lineTo(cx + 14, cy)
-      ctx.moveTo(cx, cy - 14)
-      ctx.lineTo(cx, cy + 14)
+      ctx.moveTo(anchor.x - 8, anchor.y)
+      ctx.lineTo(anchor.x + 8, anchor.y)
+      ctx.moveTo(anchor.x, anchor.y - 8)
+      ctx.lineTo(anchor.x, anchor.y + 8)
       ctx.stroke()
+      ctx.strokeStyle = 'rgba(201, 162, 94, 0.3)'
+      ctx.setLineDash([6, 6])
+      ctx.beginPath()
+      ctx.arc(anchor.x, anchor.y, this.spreadOf(g), 0, TAU)
+      ctx.stroke()
+      ctx.setLineDash([])
     }
+
+    for (const orb of this.orbs.values()) {
+      if (orb.id === DEMO_ID) continue
+      // Home: sage dot, with a leash line back to the orb.
+      const home = this.homeOf(orb)
+      ctx.strokeStyle = 'rgba(127, 144, 101, 0.5)'
+      ctx.beginPath()
+      ctx.moveTo(orb.x, orb.y)
+      ctx.lineTo(home.x, home.y)
+      ctx.stroke()
+      ctx.fillStyle = 'rgba(127, 144, 101, 0.8)'
+      ctx.beginPath()
+      ctx.arc(home.x, home.y, 3, 0, TAU)
+      ctx.fill()
+
+      // Velocity vector (half a second's travel).
+      ctx.strokeStyle = 'rgba(217, 100, 110, 0.85)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(orb.x, orb.y)
+      ctx.lineTo(orb.x + orb.vx * 0.5, orb.y + orb.vy * 0.5)
+      ctx.stroke()
+      ctx.lineWidth = 1
+    }
+    ctx.restore()
   }
 
   /** A comet-shaped wake: widest at the orb, tapering to a point at the tail. */
