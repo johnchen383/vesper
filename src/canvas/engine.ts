@@ -231,7 +231,7 @@ export class OrbEngine {
         const anchor = this.anchorOf(input.group)
         // Seed homes uniformly inside a compact disc around the anchor.
         const angle = (seed % 628) / 100
-        const radius = Math.sqrt(((seed >> 10) % 1000) / 1000) * this.scatterOf(input.group)
+        const radius = Math.sqrt(((seed >>> 10) % 1000) / 1000) * this.scatterOf(input.group)
         const startX = dropIn ? this.w / 2 : anchor.x + Math.cos(angle) * radius
         const startY = dropIn ? this.h * 0.28 : anchor.y + Math.sin(angle) * radius
         this.orbs.set(input.id, {
@@ -243,7 +243,7 @@ export class OrbEngine {
           settling: false,
           vx: 0,
           vy: dropIn ? 30 : 0,
-          heading: ((seed >> 20) % 360) * (Math.PI / 180),
+          heading: ((seed >>> 20) % 360) * (Math.PI / 180),
           phase: (seed % 628) / 100,
           appear: 0,
           pulse: 0,
