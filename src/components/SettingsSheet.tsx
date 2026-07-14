@@ -191,7 +191,7 @@ export function SettingsSheet({ onClose, onAbout }: Props) {
           <i className="toggle" />
         </label>
         <label className="toggle-row">
-          <span>Show frame rate</span>
+          <span>Dev mode</span>
           <input
             type="checkbox"
             checked={settings.showFps}

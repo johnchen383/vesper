@@ -70,6 +70,8 @@ export interface OrbStyle {
 
 const TAU = Math.PI * 2
 const DEMO_ID = '__demo'
+/** How far an orb may wander from home before gravity reaches full strength. */
+const LEASH = 160
 const MAX_SPEED = 400
 /** Cap on flick velocity so a throw never sends an orb zooming off screen. */
 const THROW_MAX = 240
@@ -559,23 +561,20 @@ export class OrbEngine {
         const spread = this.spreadOf(orb.group)
 
         // Gravity pulls toward the orb's HOME, so a dragged orb keeps its
-        // dropped neighbourhood.
+        // dropped neighbourhood. Distance is normalised against a fixed
+        // leash length (screen-independent): the pull reaches full strength
+        // once the leash stretches to LEASH px, so wandering stays local
+        // wherever the home sits and whatever the screen size.
         const home = this.homeOf(orb)
         const dx = home.x - orb.x
         const dy = home.y - orb.y
         const d = Math.hypot(dx, dy)
-        // Normalised distance: for a lone cluster, per-axis against the
-        // actual screen shape (a wide window pulls just as firmly sideways
-        // as vertically); for constellations, radial against the spread.
-        const dn =
-          this.groups <= 1
-            ? Math.hypot(dx / (this.w * 0.45), dy / (this.h * 0.45))
-            : d / spread
+        const dn = d / LEASH
         if (d > 1) {
           // A lone cluster can breathe; multiple constellations hold their
           // shape more firmly so the grouping stays legible.
           const strength = this.groups <= 1 ? 15 : 30
-          const a = Math.min(160, strength * dn ** 1.8)
+          const a = Math.min(160, strength * dn ** 1.6)
           orb.vx += (dx / d) * a * dt
           orb.vy += (dy / d) * a * dt
         }
