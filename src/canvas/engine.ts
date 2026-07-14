@@ -73,7 +73,7 @@ export interface OrbStyle {
 const TAU = Math.PI * 2
 const DEMO_ID = '__demo'
 /** How far an orb may wander from home before gravity reaches full strength. */
-const LEASH = 160
+const LEASH = 110
 const MAX_SPEED = 400
 /** Cap on flick velocity so a throw never sends an orb zooming off screen. */
 const THROW_MAX = 240
@@ -146,6 +146,11 @@ export class OrbEngine {
   private charge = 0
   private sparks: Spark[] = []
   private labelCache = new Map<string, string[]>()
+  /** Per-orb force accelerations this frame, by kind — dev overlay only. */
+  private debugForces = new Map<
+    string,
+    { home: [number, number]; space: [number, number]; wall: [number, number] }
+  >()
 
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
@@ -492,7 +497,20 @@ export class OrbEngine {
     return Math.min(90 + 26 * Math.sqrt(count), Math.min(this.w, this.h) * 0.3)
   }
 
+  /** Accumulate a force (as acceleration, px/s²) for the dev overlay. */
+  private recordForce(id: string, kind: 'home' | 'space' | 'wall', ax: number, ay: number) {
+    if (!this.debug) return
+    let forces = this.debugForces.get(id)
+    if (!forces) {
+      forces = { home: [0, 0], space: [0, 0], wall: [0, 0] }
+      this.debugForces.set(id, forces)
+    }
+    forces[kind][0] += ax
+    forces[kind][1] += ay
+  }
+
   private step(dt: number) {
+    if (this.debug) this.debugForces.clear()
     const drift = this.reduceMotion ? 0 : this.driftSpeed
     const orbs = [...this.orbs.values()]
     const cx = this.w / 2
@@ -582,17 +600,19 @@ export class OrbEngine {
           // A lone cluster can breathe; multiple constellations hold their
           // shape more firmly so the grouping stays legible.
           const strength = this.groups <= 1 ? 15 : 30
-          const a = Math.min(160, strength * dn ** 1.6)
+          const a = Math.min(160, strength * dn ** 1.4)
           orb.vx += (dx / d) * a * dt
           orb.vy += (dy / d) * a * dt
+          this.recordForce(orb.id, 'home', (dx / d) * a, (dy / d) * a)
         }
 
-        // Prayers still waiting on today's prayer migrate HOME slowly toward
-        // the anchor (half-life ~70s), greeting you mid-view over minutes —
-        // without visibly dragging an orb away from where it was just
-        // placed. Praying frees the home wherever it currently sits.
-        if (!orb.answered && !orb.prayedToday && !orb.settling) {
-          const migrate = Math.min(1, dt * 0.01)
+        // Homes migrate slowly toward the anchor, firmly for prayers still
+        // waiting on today (half-life ~35s) and faintly for everything else
+        // (~3min), so the field always regathers centrally over time without
+        // visibly dragging an orb away from where it was just placed.
+        if (!orb.settling) {
+          const rate = !orb.answered && !orb.prayedToday ? 0.02 : 0.004
+          const migrate = Math.min(1, dt * rate)
           orb.homeOx -= orb.homeOx * migrate
           orb.homeOy -= orb.homeOy * migrate
         }
@@ -602,10 +622,17 @@ export class OrbEngine {
       // is eased back in.
       if (!this.reduceMotion) {
         const edge = 40
-        if (orb.x < edge) orb.vx += (edge - orb.x) * 3 * dt
-        if (orb.x > this.w - edge) orb.vx -= (orb.x - (this.w - edge)) * 3 * dt
-        if (orb.y < edge) orb.vy += (edge - orb.y) * 3 * dt
-        if (orb.y > this.h - edge) orb.vy -= (orb.y - (this.h - edge)) * 3 * dt
+        let wx = 0
+        let wy = 0
+        if (orb.x < edge) wx = (edge - orb.x) * 3
+        if (orb.x > this.w - edge) wx = -(orb.x - (this.w - edge)) * 3
+        if (orb.y < edge) wy = (edge - orb.y) * 3
+        if (orb.y > this.h - edge) wy = -(orb.y - (this.h - edge)) * 3
+        if (wx !== 0 || wy !== 0) {
+          orb.vx += wx * dt
+          orb.vy += wy * dt
+          this.recordForce(orb.id, 'wall', wx, wy)
+        }
       }
 
       const speed = Math.hypot(orb.vx, orb.vy)
@@ -637,16 +664,20 @@ export class OrbEngine {
         const uy = dy / d
 
         // Long-range personal space: a gentle preference for openness.
-        const space = radii * 2.3
+        // Kept weaker than home gravity so crowding never expels a placed
+        // orb from the field's centre.
+        const space = radii * 2
         if (d < space) {
-          const soft = 30 * (1 - d / space) ** 2 * dt
+          const soft = 12 * (1 - d / space) ** 2
           if (a.id !== this.dragId && a.id !== this.focusId) {
-            a.vx -= ux * soft
-            a.vy -= uy * soft
+            a.vx -= ux * soft * dt
+            a.vy -= uy * soft * dt
+            this.recordForce(a.id, 'space', -ux * soft, -uy * soft)
           }
           if (b.id !== this.dragId && b.id !== this.focusId) {
-            b.vx += ux * soft
-            b.vy += uy * soft
+            b.vx += ux * soft * dt
+            b.vy += uy * soft * dt
+            this.recordForce(b.id, 'space', ux * soft, uy * soft)
           }
         }
 
@@ -722,9 +753,10 @@ export class OrbEngine {
         const d = Math.hypot(dx, dy) || 1
         const hit = 1 - Math.abs(d - front) / band
         if (hit <= 0) continue
-        const push = 320 * hit * (1 - p) * dt
-        other.vx += (dx / d) * push
-        other.vy += (dy / d) * push
+        const push = 320 * hit * (1 - p)
+        other.vx += (dx / d) * push * dt
+        other.vy += (dy / d) * push * dt
+        this.recordForce(other.id, 'space', (dx / d) * push, (dy / d) * push)
       }
     }
 
@@ -886,8 +918,47 @@ export class OrbEngine {
       ctx.moveTo(orb.x, orb.y)
       ctx.lineTo(orb.x + orb.vx * 0.5, orb.y + orb.vy * 0.5)
       ctx.stroke()
+
+      // Force arrows (accelerations, scaled and capped for readability).
+      const forces = this.debugForces.get(orb.id)
+      if (forces) {
+        const arrow = (ax: number, ay: number, colour: string) => {
+          const mag = Math.hypot(ax, ay)
+          if (mag < 0.5) return
+          const scale = Math.min(80, mag * 0.6) / mag
+          ctx.strokeStyle = colour
+          ctx.beginPath()
+          ctx.moveTo(orb.x, orb.y)
+          ctx.lineTo(orb.x + ax * scale, orb.y + ay * scale)
+          ctx.stroke()
+        }
+        arrow(forces.home[0], forces.home[1], 'rgba(96, 125, 66, 0.9)')
+        arrow(forces.space[0], forces.space[1], 'rgba(91, 139, 208, 0.9)')
+        arrow(forces.wall[0], forces.wall[1], 'rgba(230, 150, 60, 0.9)')
+      }
       ctx.lineWidth = 1
     }
+
+    // Legend.
+    ctx.font = '10px monospace'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'alphabetic'
+    const legend: [string, string][] = [
+      ['home pull', 'rgba(96, 125, 66, 0.9)'],
+      ['spacing/ripple', 'rgba(91, 139, 208, 0.9)'],
+      ['wall', 'rgba(230, 150, 60, 0.9)'],
+      ['velocity', 'rgba(217, 100, 110, 0.9)'],
+      ['home point', 'rgba(127, 144, 101, 0.9)'],
+      ['anchor+spread', 'rgba(201, 162, 94, 0.9)'],
+    ]
+    legend.forEach(([label, colour], i) => {
+      const y = this.h - 76 + i * 12
+      ctx.fillStyle = colour
+      ctx.fillRect(12, y - 7, 8, 8)
+      ctx.fillStyle = `${ink}0.7)`
+      ctx.fillText(label, 26, y)
+    })
+
     ctx.restore()
   }
 
