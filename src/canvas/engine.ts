@@ -229,13 +229,11 @@ export class OrbEngine {
         // scattered around its constellation's anchor.
         const seed = hash(input.id)
         const anchor = this.anchorOf(input.group)
-        const spread = this.spreadOf(input.group)
-        const startX = dropIn
-          ? this.w / 2
-          : anchor.x + ((seed % 1000) / 1000 - 0.5) * spread * 1.4
-        const startY = dropIn
-          ? this.h * 0.28
-          : anchor.y + (((seed >> 10) % 1000) / 1000 - 0.5) * spread * 1.4
+        // Seed homes uniformly inside a compact disc around the anchor.
+        const angle = (seed % 628) / 100
+        const radius = Math.sqrt(((seed >> 10) % 1000) / 1000) * this.scatterOf(input.group)
+        const startX = dropIn ? this.w / 2 : anchor.x + Math.cos(angle) * radius
+        const startY = dropIn ? this.h * 0.28 : anchor.y + Math.sin(angle) * radius
         this.orbs.set(input.id, {
           ...input,
           x: startX,
@@ -493,6 +491,15 @@ export class OrbEngine {
     }
   }
 
+  /**
+   * The comfortable radius for a group's homes: seeds land inside it, and
+   * homes beyond it get reeled back in.
+   */
+  private scatterOf(group: number): number {
+    if (this.groups <= 1) return Math.min(this.w, this.h) * 0.28
+    return this.spreadOf(group) * 0.7
+  }
+
   /** How far a group's members comfortably spread around their anchor. */
   private spreadOf(group: number): number {
     if (this.groups <= 1) return Math.min(this.w, this.h) * 0.9 || 1
@@ -612,9 +619,13 @@ export class OrbEngine {
         // Homes migrate slowly toward the anchor, firmly for prayers still
         // waiting on today (half-life ~35s) and faintly for everything else
         // (~3min), so the field always regathers centrally over time without
-        // visibly dragging an orb away from where it was just placed.
+        // visibly dragging an orb away from where it was just placed. Homes
+        // sitting beyond the comfortable scatter radius are reeled in faster.
         if (!orb.settling) {
-          const rate = !orb.answered && !orb.prayedToday ? 0.02 : 0.004
+          let rate = !orb.answered && !orb.prayedToday ? 0.02 : 0.004
+          const offset = Math.hypot(orb.homeOx, orb.homeOy)
+          const comfort = this.scatterOf(orb.group)
+          if (offset > comfort) rate += 0.06 * (offset / comfort - 1)
           const migrate = Math.min(1, dt * rate)
           orb.homeOx -= orb.homeOx * migrate
           orb.homeOy -= orb.homeOy * migrate
