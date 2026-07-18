@@ -73,7 +73,7 @@ export const useVesper = create<VesperState>()(
       settings: {
         theme: 'light',
         halfLifeDays: 7,
-        drift: 'calm',
+        gravity: 'gentle',
         orb: { size: 'medium', rings: 3, glow: 'soft', core: 'soft' },
         clusterByCanvas: true,
         showTitles: true,

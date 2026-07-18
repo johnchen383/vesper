@@ -48,8 +48,8 @@ export interface Settings {
   theme: 'light' | 'dark' | 'system'
   /** Days for an orb to lose half its light without prayer. */
   halfLifeDays: number
-  /** How quickly orbs wander the canvas. */
-  drift: 'calm' | 'lively'
+  /** How firmly orbs are drawn back toward their homes. */
+  gravity: 'loose' | 'gentle' | 'firm'
   orb: OrbDesign
   /** Gather each visible canvas into its own constellation. */
   clusterByCanvas: boolean

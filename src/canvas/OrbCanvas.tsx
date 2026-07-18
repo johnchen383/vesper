@@ -24,7 +24,7 @@ const HOLD_DELAY_MS = 550
 /** Synthetic orb ids in the meta-orb overview: one orb per canvas. */
 const META_PREFIX = '__canvas:'
 
-const DRIFT_SPEEDS = { calm: 3.2, lively: 26 }
+const GRAVITY_SCALES = { loose: 0.6, gentle: 1, firm: 1.8 }
 const ORB_SIZES = { small: 17, medium: 22, large: 28 }
 const ORB_GLOWS = { faint: 0.55, soft: 1, radiant: 1.6 }
 const ORB_CORES = { soft: { scale: 0.3, alpha: 0 }, bold: { scale: 0.4, alpha: 0.18 } }
@@ -87,7 +87,7 @@ export function OrbCanvas({
     if (!engine) return
     engine.reduceMotion =
       settings.reduceMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    engine.driftSpeed = DRIFT_SPEEDS[settings.drift] ?? DRIFT_SPEEDS.calm
+    engine.gravityScale = GRAVITY_SCALES[settings.gravity] ?? GRAVITY_SCALES.gentle
     engine.showLabels = settings.showTitles
     const core = ORB_CORES[settings.orb.core]
     engine.orbStyle = {

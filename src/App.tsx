@@ -93,7 +93,7 @@ export default function App() {
   ).length
   const canvasBarLabel =
     visibleCanvases.length === canvases.length
-      ? 'All canvases'
+      ? 'All'
       : visibleCanvases.length === 1
         ? visibleCanvases[0].name
         : `${visibleCanvases[0]?.name ?? 'Canvases'} +${visibleCanvases.length - 1}`
@@ -168,14 +168,12 @@ export default function App() {
 
       {canvases.length > 1 && view === 'canvas' && !session && (
         <div className="canvasbars">
+          <button className="canvasbar canvasbar--overview" onClick={showAllCanvases}>
+            Canvases
+          </button>
           <button className="canvasbar" onClick={() => setPanel({ kind: 'canvases' })}>
             {canvasBarLabel}
           </button>
-          {canvases.length > 3 && visibleCanvasIds.length <= 3 && (
-            <button className="canvasbar canvasbar--overview" onClick={showAllCanvases}>
-              Overview
-            </button>
-          )}
         </div>
       )}
 

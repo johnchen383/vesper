@@ -47,6 +47,7 @@ A minimalist prayer app: prayers are floating orbs on a living canvas. Praying f
 - Subtle > flashy: things that "go up," oversized orbs, saturated flat blobs, and static-feeling orbs were all rejected. Continuous life = heartbeat swell + slow emanating ripple.
 - No zoom/pan (was built, then removed as redundant once gravity kept orbs in view).
 - Settings are constrained choices (segmented options), not free sliders; every combination must stay aesthetic. Fading shows half-life days on the options (3/7/14).
+- Drift is NOT a setting: lively wander (26 px/s) is always on (the calm/lively toggle was removed; calm was rejected as lifeless). The "Gravity" setting (Loose/Gentle/Firm → 0.6/1/1.8 × home-pull strength) controls inward pull instead. FPS/dev readout sits top-right.
 
 ## Data & privacy stance
 

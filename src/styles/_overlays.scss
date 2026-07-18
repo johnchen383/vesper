@@ -164,8 +164,8 @@
 
 .fps {
   position: fixed;
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  left: calc(12px + env(safe-area-inset-left));
+  top: calc(20px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
   z-index: 6;
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 11px;
@@ -285,9 +285,24 @@
     list-style: none;
     max-height: 150px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    // Scroll shadows: a soft shade appears at whichever edge has more
+    // content, and fades out when scrolled to that end.
+    background:
+      linear-gradient(var(--surface-solid) 30%, transparent) center top,
+      linear-gradient(transparent, var(--surface-solid) 70%) center bottom,
+      radial-gradient(farthest-side at 50% 0, var(--scroll-shadow), transparent) center top,
+      radial-gradient(farthest-side at 50% 100%, var(--scroll-shadow), transparent) center bottom;
+    background-repeat: no-repeat;
+    background-size:
+      100% 34px,
+      100% 34px,
+      100% 12px,
+      100% 12px;
+    background-attachment: local, local, scroll, scroll;
 
     li {
       display: flex;

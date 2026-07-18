@@ -117,7 +117,9 @@ function hash(str: string): number {
  */
 export class OrbEngine {
   reduceMotion = false
-  driftSpeed = 3.2
+  driftSpeed = 26
+  /** Multiplier on the home pull — the "Gravity" setting. */
+  gravityScale = 1
   showLabels = true
   theme: 'light' | 'dark' = 'light'
   orbStyle: OrbStyle = { baseRadius: 22, rings: 3, glow: 1, coreScale: 0.3, coreAlpha: 0 }
@@ -609,7 +611,7 @@ export class OrbEngine {
         if (d > 1 && !orb.settling) {
           // A lone cluster can breathe; multiple constellations hold their
           // shape more firmly so the grouping stays legible.
-          const strength = this.groups <= 1 ? 15 : 30
+          const strength = (this.groups <= 1 ? 15 : 30) * this.gravityScale
           const a = Math.min(160, strength * dn ** 1.4)
           orb.vx += (dx / d) * a * dt
           orb.vy += (dy / d) * a * dt

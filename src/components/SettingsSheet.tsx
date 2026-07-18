@@ -10,9 +10,10 @@ const PACES = [
   { label: 'Patient', days: 14 },
 ]
 
-const DRIFTS = [
-  { label: 'Calm', value: 'calm' as const },
-  { label: 'Lively', value: 'lively' as const },
+const GRAVITIES = [
+  { label: 'Loose', value: 'loose' as const },
+  { label: 'Gentle', value: 'gentle' as const },
+  { label: 'Firm', value: 'firm' as const },
 ]
 
 const THEMES = [
@@ -113,16 +114,16 @@ export function SettingsSheet({ onClose, onAbout }: Props) {
       </section>
 
       <section className="settings__section">
-        <h3>Drift</h3>
-        <p className="hint">How quickly the orbs wander the canvas.</p>
+        <h3>Gravity</h3>
+        <p className="hint">How firmly orbs are drawn back home as they wander.</p>
         <div className="segmented">
-          {DRIFTS.map((drift) => (
+          {GRAVITIES.map((gravity) => (
             <button
-              key={drift.value}
-              className={settings.drift === drift.value ? 'is-active' : ''}
-              onClick={() => setSettings({ drift: drift.value })}
+              key={gravity.value}
+              className={settings.gravity === gravity.value ? 'is-active' : ''}
+              onClick={() => setSettings({ gravity: gravity.value })}
             >
-              {drift.label}
+              {gravity.label}
             </button>
           ))}
         </div>

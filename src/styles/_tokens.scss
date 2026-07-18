@@ -22,6 +22,9 @@ $font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --veil: rgba(244, 240, 232, 0.45);
   --scrollbar: rgba(53, 50, 44, 0.2);
   --scrollbar-hover: rgba(53, 50, 44, 0.35);
+  // Solid approximation of --surface, for scroll-shadow cover gradients.
+  --surface-solid: #fbf9f4;
+  --scroll-shadow: rgba(53, 50, 44, 0.22);
 }
 
 :root[data-theme='dark'] {
@@ -44,4 +47,6 @@ $font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --veil: rgba(10, 9, 18, 0.45);
   --scrollbar: rgba(234, 232, 242, 0.2);
   --scrollbar-hover: rgba(234, 232, 242, 0.35);
+  --surface-solid: #3a3842;
+  --scroll-shadow: rgba(0, 0, 0, 0.5);
 }
