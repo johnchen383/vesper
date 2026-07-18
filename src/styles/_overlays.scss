@@ -174,11 +174,16 @@
 }
 
 // Top-left pill naming the visible canvases; opens the canvas selector.
-.canvasbar {
+.canvasbars {
   position: fixed;
   top: calc(18px + env(safe-area-inset-top));
   left: calc(16px + env(safe-area-inset-left));
   z-index: 5;
+  display: flex;
+  gap: 8px;
+}
+
+.canvasbar {
   max-width: 46vw;
   padding: 8px 16px;
   border-radius: 999px;
@@ -196,6 +201,11 @@
 
   &:hover {
     background: var(--float-strong);
+  }
+
+  &--overview {
+    flex-shrink: 0;
+    color: var(--ink-dim);
   }
 }
 
@@ -286,7 +296,7 @@
       padding-left: 10px;
       border-left: 2px solid var(--accent-soft);
 
-      &.is-answered {
+      &.is-highlighted {
         border-left-color: rgba(201, 162, 94, 0.55);
 
         time {

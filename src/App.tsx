@@ -62,6 +62,8 @@ export default function App() {
   const canvases = useVesper((s) => s.canvases)
   const visibleCanvasIds = useVesper((s) => s.visibleCanvasIds)
   const pray = useVesper((s) => s.pray)
+  const showOnlyCanvas = useVesper((s) => s.showOnlyCanvas)
+  const showAllCanvases = useVesper((s) => s.showAllCanvases)
   const theme = useVesper((s) => s.settings.theme)
   const showFps = useVesper((s) => s.settings.showFps)
   const showAnswered = useVesper((s) => s.settings.showAnswered)
@@ -144,6 +146,7 @@ export default function App() {
           }
           setPanel({ kind: 'prayer', id, anchor })
         }}
+        onSelectCanvas={showOnlyCanvas}
         onLongPray={(id) => {
           pray(id)
           engineRef.current?.pulse(id)
@@ -164,9 +167,16 @@ export default function App() {
       )}
 
       {canvases.length > 1 && view === 'canvas' && !session && (
-        <button className="canvasbar" onClick={() => setPanel({ kind: 'canvases' })}>
-          {canvasBarLabel}
-        </button>
+        <div className="canvasbars">
+          <button className="canvasbar" onClick={() => setPanel({ kind: 'canvases' })}>
+            {canvasBarLabel}
+          </button>
+          {canvases.length > 3 && visibleCanvasIds.length <= 3 && (
+            <button className="canvasbar canvasbar--overview" onClick={showAllCanvases}>
+              Overview
+            </button>
+          )}
+        </div>
       )}
 
       {view === 'answered' && (

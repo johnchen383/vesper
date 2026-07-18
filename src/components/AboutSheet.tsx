@@ -5,7 +5,6 @@ const WISHLIST = [
   'Group prayer: a shared canvas for a family, small group, or church',
   'Subscribing to a canvas, so you can carry what others are carrying',
   'Scripture integration: pin a verse or promise to a prayer',
-  'An overview that gathers each canvas into a single orb',
   'Soft background music for a quieter place to dwell',
   'Cloud sync across devices',
   'Gentle evening reminders as a native app',
@@ -22,10 +21,9 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
         </p>
         <p className="about__blurb">
           Vesper is built around consistency. An orb brightens as you return to it and slowly dims
-          when you drift away, never as a punishment, only as a quiet invitation to come back.
-          To "pray without ceasing" (1 Thessalonians 5:17) is less about never stopping and more
-          about always returning, and that rhythm of returning is what this canvas hopes to
-          encourage.
+          when you drift away, never as a punishment, only as a quiet invitation to come back. The
+          hope is that small, daily returns grow into a rhythm, and the rhythm into a life of
+          prayer without ceasing (1 Thessalonians 5:17).
         </p>
       </section>
 

@@ -4,6 +4,15 @@ A minimalist prayer app that replaces lists with a living canvas of floating orb
 
 Each orb is a prayer request. The more consistently you pray for it, the brighter it glows; neglected prayers gently fade — not as a punishment, but as a quiet invitation to return. Tap an orb to pray, update it, or mark it as answered. Answered prayers remain on the canvas in gold, as lasting reminders of God's faithfulness.
 
+## What it does today
+
+- **Living canvas**: orbs drawn as concentric rings that breathe, heartbeat, and ripple; draggable with comet trails; earthy speck flakes with parallax depth react to wakes and Amens; light and dark themes.
+- **Prayed today**: the outermost ring is dashed until you pray, then the circle completes. Waiting orbs drift toward centre view.
+- **Two kinds of prayer**: requests (can be answered) and people (carried, never "answered" — released instead), each with a dated journal whose notes can be highlighted gold.
+- **Canvases**: named collections, max 15 active prayers each, any subset visible; multiple visible canvases gather as spatial constellations, and more than three switches to a meta-orb overview (one orb per canvas, tap to zoom in).
+- **Prayer sessions**: pray through today's waiting prayers one orb at a time (the focused orb centres and breathes slowly), with an evening "vespers" invitation when prayers are waiting.
+- **Long-press to pray** straight on the canvas, an answered constellation view, JSON export/import, and a dev mode (FPS + physics overlay).
+
 ## Stack
 
 - **Vite + React + TypeScript + Sass** — the canvas itself is a hand-rolled 2D-canvas engine ([src/canvas/engine.ts](src/canvas/engine.ts))

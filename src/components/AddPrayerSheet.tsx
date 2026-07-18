@@ -1,23 +1,31 @@
 import { useState, type FormEvent } from 'react'
 import { Sheet } from './Sheet'
-import { useVesper } from '../store/useVesper'
+import { MAX_PER_CANVAS, useVesper } from '../store/useVesper'
 import type { PrayerKind } from '../types'
 
 export function AddPrayerSheet({ onClose }: { onClose: () => void }) {
   const addPrayer = useVesper((s) => s.addPrayer)
   const canvases = useVesper((s) => s.canvases)
   const visibleCanvasIds = useVesper((s) => s.visibleCanvasIds)
+  const prayers = useVesper((s) => s.prayers)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [kind, setKind] = useState<PrayerKind>('request')
-  const [canvasId, setCanvasId] = useState(
-    () => (visibleCanvasIds.length === 1 ? visibleCanvasIds[0] : canvases[0]?.id) ?? ''
-  )
+
+  const isFull = (id: string) =>
+    prayers.filter((p) => p.canvasId === id && p.status === 'active').length >= MAX_PER_CANVAS
+
+  const [canvasId, setCanvasId] = useState(() => {
+    const preferred =
+      (visibleCanvasIds.length === 1 ? visibleCanvasIds[0] : canvases[0]?.id) ?? ''
+    if (preferred && !isFull(preferred)) return preferred
+    return canvases.find((c) => !isFull(c.id))?.id ?? preferred
+  })
 
   const submit = (e: FormEvent, close: () => void) => {
     e.preventDefault()
-    if (!title.trim()) return
-    addPrayer(title, description, canvasId || undefined, kind)
+    if (!title.trim() || !canvasId || isFull(canvasId)) return
+    addPrayer(title, description, canvasId, kind)
     close()
   }
 
@@ -78,16 +86,22 @@ export function AddPrayerSheet({ onClose }: { onClose: () => void }) {
                     key={canvas.id}
                     type="button"
                     className={canvasId === canvas.id ? 'is-active' : ''}
+                    disabled={isFull(canvas.id)}
                     onClick={() => setCanvasId(canvas.id)}
                   >
                     {canvas.name}
+                    {isFull(canvas.id) ? ' · full' : ''}
                   </button>
                 ))}
               </div>
             </div>
           )}
-          <button className="btn btn--primary" type="submit" disabled={!title.trim()}>
-            Add to the canvas
+          <button
+            className="btn btn--primary"
+            type="submit"
+            disabled={!title.trim() || !canvasId || isFull(canvasId)}
+          >
+            {canvasId && isFull(canvasId) ? 'Canvas is full' : 'Add to the canvas'}
           </button>
         </form>
       )}

@@ -13,12 +13,16 @@ interface Props {
   /** Orb focused by an active prayer session, if any. */
   focusId: string | null
   onSelect: (id: string) => void
+  /** A meta-orb was tapped in the overview: zoom into that canvas. */
+  onSelectCanvas: (canvasId: string) => void
   /** Long-press charge completed on an orb: record the prayer. */
   onLongPray: (id: string) => void
   onReady: (engine: OrbEngine) => void
 }
 
 const HOLD_DELAY_MS = 550
+/** Synthetic orb ids in the meta-orb overview: one orb per canvas. */
+const META_PREFIX = '__canvas:'
 
 const DRIFT_SPEEDS = { calm: 3.2, lively: 26 }
 const ORB_SIZES = { small: 17, medium: 22, large: 28 }
@@ -33,7 +37,15 @@ interface DragState {
   startedAt: number
 }
 
-export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }: Props) {
+export function OrbCanvas({
+  mode,
+  demo,
+  focusId,
+  onSelect,
+  onSelectCanvas,
+  onLongPray,
+  onReady,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const engineRef = useRef<OrbEngine | null>(null)
   const dragRef = useRef<DragState | null>(null)
@@ -95,6 +107,11 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
     }
     if (settings.theme === 'system') mq.addEventListener('change', onSchemeChange)
 
+    // With more than three canvases selected, the field becomes an overview:
+    // one meta-orb per canvas. Sessions need real orbs, so they override.
+    const visibleCanvases = canvases.filter((c) => visibleCanvasIds.includes(c.id))
+    const metaMode = mode === 'canvas' && visibleCanvases.length > 3 && !focusId
+
     // Visible canvases become constellation groups, in canvas-list order.
     // Empty canvases don't claim a slot — space is shared among those that
     // actually have orbs to show. Clustering can be turned off entirely in
@@ -104,15 +121,51 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
         (p) => p.canvasId === canvasId && (settings.showAnswered || p.status !== 'answered')
       )
     const groupOf = new Map<string, number>()
-    if (settings.clusterByCanvas) {
-      canvases
-        .filter((c) => visibleCanvasIds.includes(c.id) && showsOrbs(c.id))
+    if (settings.clusterByCanvas && !metaMode) {
+      visibleCanvases
+        .filter((c) => showsOrbs(c.id))
         .forEach((c, index) => groupOf.set(c.id, index))
     }
-    engine.groups = mode === 'answered' ? 1 : Math.max(1, groupOf.size)
+    engine.groups = mode === 'answered' || metaMode ? 1 : Math.max(1, groupOf.size)
 
     const sync = () => {
       const now = Date.now()
+
+      if (metaMode) {
+        engine.sync(
+          visibleCanvases.map((c) => {
+            const members = prayers.filter(
+              (p) => p.canvasId === c.id && p.status === 'active'
+            )
+            const vitality =
+              members.length > 0
+                ? members.reduce(
+                    (sum, p) => sum + vitalityOf(p, now, settings.halfLifeDays),
+                    0
+                  ) / members.length
+                : 0.25
+            return {
+              id: META_PREFIX + c.id,
+              label: c.name,
+              hue: c.hue,
+              vitality,
+              answered: false,
+              // The overview ring completes when the whole canvas is prayed.
+              prayedToday:
+                members.length > 0 &&
+                members.every(
+                  (p) =>
+                    p.prayedAt.length > 0 &&
+                    isSameDay(p.prayedAt[p.prayedAt.length - 1], now)
+                ),
+              weight: Math.min(40, members.length * 2.7),
+              group: 0,
+            }
+          })
+        )
+        return
+      }
+
       const visible =
         mode === 'answered'
           ? prayers.filter((p) => p.status === 'answered')
@@ -164,10 +217,13 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
         engine.pressId = id
         dragRef.current = { id, startX: x, startY: y, dragging: false, startedAt: Date.now() }
         // Held still long enough → begin the long-press prayer charge.
+        // (Meta-orbs aren't prayers; they can't be charged.)
         clearTimeout(holdTimerRef.current)
         holdTimerRef.current = window.setTimeout(() => {
           const drag = dragRef.current
-          if (drag && !drag.dragging) engine.startCharge(drag.id)
+          if (drag && !drag.dragging && !drag.id.startsWith(META_PREFIX)) {
+            engine.startCharge(drag.id)
+          }
         }, HOLD_DELAY_MS)
       }}
       onPointerMove={(e) => {
@@ -202,7 +258,10 @@ export function OrbCanvas({ mode, demo, focusId, onSelect, onLongPray, onReady }
         }
         if (!drag || !engine) return
         if (drag.dragging) engine.dragEnd()
-        else if (Date.now() - drag.startedAt < 500) onSelect(drag.id)
+        else if (Date.now() - drag.startedAt < 500) {
+          if (drag.id.startsWith(META_PREFIX)) onSelectCanvas(drag.id.slice(META_PREFIX.length))
+          else onSelect(drag.id)
+        }
         e.currentTarget.releasePointerCapture(e.pointerId)
       }}
       onPointerCancel={() => {

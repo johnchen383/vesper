@@ -72,6 +72,15 @@
       border-color: var(--accent);
       color: var(--ink);
     }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+
+      &:hover {
+        background: var(--wash);
+      }
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import type { Prayer, PrayerCanvas, Settings } from '../types'
+import type { JournalEntry, Prayer, PrayerCanvas, Settings } from '../types'
 import { useVesper } from '../store/useVesper'
 
 interface Backup {
@@ -58,7 +58,12 @@ export async function importBackup(file: File): Promise<{ ok: boolean; message: 
       .map((p) => ({
         ...p,
         hue: typeof p.hue === 'number' ? p.hue : 216,
-        journal: Array.isArray(p.journal) ? p.journal : [],
+        journal: (Array.isArray(p.journal) ? p.journal : []).map((e) => {
+          // Backups from before v5 called highlights "answered".
+          const legacy = e as JournalEntry & { answeredAt?: number }
+          const { answeredAt, ...rest } = legacy
+          return { ...rest, highlightedAt: legacy.highlightedAt ?? answeredAt }
+        }),
         canvasId: knownIds.has(p.canvasId) ? p.canvasId : resolved[0].id,
         kind: p.kind === 'person' ? ('person' as const) : ('request' as const),
         status: p.status === 'answered' ? ('answered' as const) : ('active' as const),

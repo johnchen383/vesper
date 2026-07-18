@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import type { Prayer, PrayerCanvas, PrayerKind, Settings } from '../types'
+import type { JournalEntry, Prayer, PrayerCanvas, PrayerKind, Settings } from '../types'
 import { localAdapter } from '../storage/adapter'
 
 // Curated orb tones (see the engine's palette); gold is reserved for answered prayers.
 const HUES = [216, 8, 100, 340, 275, 185]
 const MAX_PRAYED_ENTRIES = 1000
 
+/** A canvas holds at most this many active prayers. */
+export const MAX_PER_CANVAS = 15
+
 /** Bump when the persisted shape changes, and handle it in `migrate` below. */
-const SCHEMA_VERSION = 4
+const SCHEMA_VERSION = 5
 
 interface VesperState {
   prayers: Prayer[]
@@ -25,7 +28,7 @@ interface VesperState {
   ) => void
   addJournal: (id: string, text: string) => void
   removeJournal: (id: string, at: number) => void
-  toggleJournalAnswered: (id: string, at: number) => void
+  toggleJournalHighlight: (id: string, at: number) => void
   markAnswered: (id: string, note?: string) => void
   reopen: (id: string) => void
   removePrayer: (id: string) => void
@@ -33,6 +36,10 @@ interface VesperState {
   renameCanvas: (id: string, name: string) => void
   removeCanvas: (id: string, deletePrayers?: boolean) => void
   toggleCanvasVisible: (id: string) => void
+  /** Zoom into one canvas (from the meta-orb overview). */
+  showOnlyCanvas: (id: string) => void
+  /** Show every canvas — the overview when more than three exist. */
+  showAllCanvases: () => void
   setSettings: (patch: Partial<Settings>) => void
   replaceAll: (
     prayers: Prayer[],
@@ -80,6 +87,10 @@ export const useVesper = create<VesperState>()(
         const target =
           canvasId ??
           (visibleCanvasIds.length === 1 ? visibleCanvasIds[0] : canvases[0].id)
+        const activeOnTarget = prayers.filter(
+          (p) => p.canvasId === target && p.status === 'active'
+        ).length
+        if (activeOnTarget >= MAX_PER_CANVAS) return ''
         const prayer: Prayer = {
           id: crypto.randomUUID(),
           title: title.trim(),
@@ -119,7 +130,7 @@ export const useVesper = create<VesperState>()(
           ),
         })),
 
-      toggleJournalAnswered: (id, at) =>
+      toggleJournalHighlight: (id, at) =>
         set((s) => ({
           prayers: s.prayers.map((p) =>
             p.id === id
@@ -127,7 +138,7 @@ export const useVesper = create<VesperState>()(
                   ...p,
                   journal: p.journal.map((e) =>
                     e.at === at
-                      ? { ...e, answeredAt: e.answeredAt ? undefined : Date.now() }
+                      ? { ...e, highlightedAt: e.highlightedAt ? undefined : Date.now() }
                       : e
                   ),
                 }
@@ -209,6 +220,12 @@ export const useVesper = create<VesperState>()(
           return visible.length > 0 ? { visibleCanvasIds: visible } : s
         }),
 
+      showOnlyCanvas: (id) =>
+        set((s) => (s.canvases.some((c) => c.id === id) ? { visibleCanvasIds: [id] } : s)),
+
+      showAllCanvases: () =>
+        set((s) => ({ visibleCanvasIds: s.canvases.map((c) => c.id) })),
+
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
 
       replaceAll: (prayers, canvases, settings) =>
@@ -252,6 +269,17 @@ export const useVesper = create<VesperState>()(
         if (version < 4) {
           // v4 added prayer kinds (request | person).
           state.prayers = (state.prayers ?? []).map((p) => ({ ...p, kind: p.kind ?? 'request' }))
+        }
+        if (version < 5) {
+          // v5 renamed journal note "answered" to "highlighted".
+          state.prayers = (state.prayers ?? []).map((p) => ({
+            ...p,
+            journal: (p.journal ?? []).map((e) => {
+              const legacy = e as JournalEntry & { answeredAt?: number }
+              const { answeredAt, ...rest } = legacy
+              return { ...rest, highlightedAt: legacy.highlightedAt ?? answeredAt }
+            }),
+          }))
         }
         return state
       },

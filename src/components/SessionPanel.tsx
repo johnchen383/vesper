@@ -49,12 +49,9 @@ export function SessionPanel({ prayerId, index, total, onAmen, onSkip, onEnd }: 
       {prayer.journal.length > 0 && (
         <ul className="journal__list session__notes">
           {[...prayer.journal].reverse().map((entry) => (
-            <li key={entry.at} className={entry.answeredAt ? 'is-answered' : ''}>
+            <li key={entry.at} className={entry.highlightedAt ? 'is-highlighted' : ''}>
               <div className="journal__entry">
-                <time>
-                  {longDate(entry.at)}
-                  {entry.answeredAt ? ` · answered ${longDate(entry.answeredAt)}` : ''}
-                </time>
+                <time>{longDate(entry.at)}</time>
                 {entry.text}
               </div>
             </li>

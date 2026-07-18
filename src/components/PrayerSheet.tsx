@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Sheet, type SheetAnchor } from './Sheet'
 import { CloseIcon, StarIcon } from './icons'
 import type { PrayerKind } from '../types'
-import { useVesper } from '../store/useVesper'
+import { MAX_PER_CANVAS, useVesper } from '../store/useVesper'
 import { isSameDay, longDate, timeAgo } from '../lib/format'
 
 interface Props {
@@ -20,12 +20,13 @@ type Mode = 'view' | 'edit' | 'answer'
 export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }: Props) {
   const prayer = useVesper((s) => s.prayers.find((p) => p.id === prayerId))
   const canvases = useVesper((s) => s.canvases)
+  const prayers = useVesper((s) => s.prayers)
   const {
     pray,
     updatePrayer,
     addJournal,
     removeJournal,
-    toggleJournalAnswered,
+    toggleJournalHighlight,
     markAnswered,
     reopen,
     removePrayer,
@@ -98,16 +99,25 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
             <div className="field">
               <span>Canvas</span>
               <div className="chips">
-                {canvases.map((canvas) => (
-                  <button
-                    key={canvas.id}
-                    type="button"
-                    className={canvasId === canvas.id ? 'is-active' : ''}
-                    onClick={() => setCanvasId(canvas.id)}
-                  >
-                    {canvas.name}
-                  </button>
-                ))}
+                {canvases.map((canvas) => {
+                  // Moving here is blocked when full; staying put is always fine.
+                  const full =
+                    canvas.id !== prayer.canvasId &&
+                    prayers.filter((p) => p.canvasId === canvas.id && p.status === 'active')
+                      .length >= MAX_PER_CANVAS
+                  return (
+                    <button
+                      key={canvas.id}
+                      type="button"
+                      className={canvasId === canvas.id ? 'is-active' : ''}
+                      disabled={full}
+                      onClick={() => setCanvasId(canvas.id)}
+                    >
+                      {canvas.name}
+                      {full ? ' · full' : ''}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -210,18 +220,15 @@ export function PrayerSheet({ prayerId, onClose, onPrayed, onAnswered, anchor }:
                 {prayer.journal.length > 0 && (
                   <ul className="journal__list">
                     {[...prayer.journal].reverse().map((entry) => (
-                      <li key={entry.at} className={entry.answeredAt ? 'is-answered' : ''}>
+                      <li key={entry.at} className={entry.highlightedAt ? 'is-highlighted' : ''}>
                         <div className="journal__entry">
-                          <time>
-                            {longDate(entry.at)}
-                            {entry.answeredAt ? ` · answered ${longDate(entry.answeredAt)}` : ''}
-                          </time>
+                          <time>{longDate(entry.at)}</time>
                           {entry.text}
                         </div>
                         <button
-                          className={`icon-btn journal__mark ${entry.answeredAt ? 'is-active' : ''}`}
-                          aria-label={entry.answeredAt ? 'Unmark answered' : 'Mark note answered'}
-                          onClick={() => toggleJournalAnswered(prayer.id, entry.at)}
+                          className={`icon-btn journal__mark ${entry.highlightedAt ? 'is-active' : ''}`}
+                          aria-label={entry.highlightedAt ? 'Remove highlight' : 'Highlight note'}
+                          onClick={() => toggleJournalHighlight(prayer.id, entry.at)}
                         >
                           <StarIcon size={13} />
                         </button>

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Sheet } from './Sheet'
-import { useVesper } from '../store/useVesper'
+import { MAX_PER_CANVAS, useVesper } from '../store/useVesper'
 import { CloseIcon, PencilIcon, TrashIcon } from './icons'
 
 export function CanvasesSheet({ onClose }: { onClose: () => void }) {
@@ -96,7 +96,7 @@ export function CanvasesSheet({ onClose }: { onClose: () => void }) {
               <i className="toggle" />
             </label>
             <span className="canvasrow__name">
-              {canvas.name} <em>{count}</em>
+              {canvas.name} <em>{count >= MAX_PER_CANVAS ? `${count} · full` : count}</em>
             </span>
             <button
               className="icon-btn"

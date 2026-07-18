@@ -6,8 +6,8 @@ export type PrayerKind = 'request' | 'person'
 export interface JournalEntry {
   at: number
   text: string
-  /** Set when this specific note was answered — the person endures. */
-  answeredAt?: number
+  /** Set when this note is highlighted — a moment worth holding onto. */
+  highlightedAt?: number
 }
 
 /** A named collection of prayers; any subset can be shown on the main view. */
